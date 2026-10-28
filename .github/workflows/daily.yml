@@ -1,0 +1,5 @@
+
+name: Daily Nature Shorts
+
+on:
+  workflow_dispatch:
