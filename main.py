@@ -1,4 +1,3 @@
-
 import os
 import json
 import math
@@ -30,18 +29,21 @@ SCENES.mkdir(exist_ok=True)
 WIDTH = 1080
 HEIGHT = 1920
 FPS = 30
-VOICE = "en-US-AriaNeural"
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+
+# Urdu female voice
+VOICE = "ur-PK-UzmaNeural"
+
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload"
+]
 
 # ==========================================
 # CONTENT LIBRARY
-# Three categories rotate automatically.
-# Fictional stories are clearly identified.
+# Urdu narration + English subtitles
 # ==========================================
 
 TOPICS = [
 
-    # 1. FICTIONAL SUSPENSE STORY
     {
         "category": "Story",
         "title": "The Door Hidden in the Forest",
@@ -54,6 +56,14 @@ TOPICS = [
             "But when he turned around, the entire forest had disappeared.",
             "Where do you think that mysterious door led?"
         ],
+        "urdu": [
+            "ایک نوجوان مہم جو کو ایک ویران جنگل کے اندر ایک عجیب دروازہ ملا۔",
+            "اس کے اردگرد کوئی دیوار نہیں تھی، صرف ایک پرانا لکڑی کا دروازہ بڑے درختوں کے درمیان کھڑا تھا۔",
+            "جیسے ہی اس نے آہستہ سے دروازہ کھولا، دوسری طرف سے سنہری روشنی آنے لگی۔",
+            "وہ قریب گیا تو اسے کسی کی آواز سنائی دی جو اس کا نام پکار رہی تھی۔",
+            "لیکن جب اس نے پیچھے مڑ کر دیکھا تو پورا جنگل غائب ہو چکا تھا۔",
+            "آپ کے خیال میں وہ پراسرار دروازہ کہاں جاتا تھا؟"
+        ],
         "prompts": [
             "cinematic photorealistic 3D film scene, young male explorer wearing a dark green adventure jacket discovering an ancient wooden door standing alone in a dense mysterious forest, dramatic fog, realistic human proportions, vertical composition, no text",
             "same young male explorer examining an ancient wooden door surrounded by enormous moss covered trees, cinematic forest atmosphere, realistic 3D movie quality, vertical composition, no text",
@@ -64,7 +74,6 @@ TOPICS = [
         ]
     },
 
-    # 2. RESEARCH / SCIENCE
     {
         "category": "Research",
         "title": "What Happens Inside a Black Hole?",
@@ -77,6 +86,14 @@ TOPICS = [
             "Scientists study black holes by observing how they affect nearby stars and gas.",
             "The universe still holds mysteries we are only beginning to understand."
         ],
+        "urdu": [
+            "ذرا تصور کریں کہ آپ کائنات کی ایک عجیب ترین چیز کی طرف گر رہے ہیں۔",
+            "بلیک ہول کی کشش ثقل اتنی طاقتور ہوتی ہے کہ اس کے ایونٹ ہورائزن سے روشنی بھی باہر نہیں نکل سکتی۔",
+            "اس کے قریب پہنچنے پر کشش ثقل چیزوں کو لمبا کھینچ سکتی ہے، اس عمل کو اسپگیٹیفیکیشن کہتے ہیں۔",
+            "ہم ایونٹ ہورائزن کے اندر نہیں دیکھ سکتے کیونکہ روشنی وہاں سے واپس نہیں آ سکتی۔",
+            "سائنس دان قریبی ستاروں اور گیس پر بلیک ہول کے اثرات دیکھ کر اس کا مطالعہ کرتے ہیں۔",
+            "کائنات میں اب بھی ایسے راز موجود ہیں جنہیں ہم سمجھنے کی کوشش کر رہے ہیں۔"
+        ],
         "prompts": [
             "cinematic scientifically inspired view of a gigantic black hole in deep space with glowing accretion disk, stars and nebula, photorealistic space documentary, vertical composition, no text",
             "scientifically inspired black hole with bright glowing accretion disk and distorted stars caused by gravitational lensing, realistic astronomy visualization, vertical composition, no text",
@@ -87,7 +104,6 @@ TOPICS = [
         ]
     },
 
-    # 3. REALISTIC ADVENTURE
     {
         "category": "Adventure",
         "title": "Lost in the World's Wildest Jungle",
@@ -100,6 +116,14 @@ TOPICS = [
             "You enter the cave and discover a mysterious abandoned camp.",
             "Would you stay or keep exploring?"
         ],
+        "urdu": [
+            "تصور کریں کہ آپ ایک ایسے جنگل میں اکیلے جاگتے ہیں جسے آپ نے پہلے کبھی نہیں دیکھا۔",
+            "درخت بہت بڑے ہیں، دریا تیزی سے بہہ رہا ہے اور ہر طرف عجیب آوازیں سنائی دے رہی ہیں۔",
+            "آپ کو لکڑی کا ایک پرانا پل ملتا ہے جو ایک گہری آبشار کے اوپر لٹک رہا ہے۔",
+            "اچانک آپ کو تازہ قدموں کے نشان نظر آتے ہیں جو ایک چھپی ہوئی غار کی طرف جا رہے ہیں۔",
+            "آپ غار میں داخل ہوتے ہیں اور وہاں ایک پراسرار ویران کیمپ دیکھتے ہیں۔",
+            "کیا آپ وہاں رکیں گے یا آگے تلاش جاری رکھیں گے؟"
+        ],
         "prompts": [
             "cinematic photorealistic 3D adventure film scene, lone young male explorer in outdoor survival clothing waking up in a vast tropical jungle, giant trees and morning mist, vertical composition, no text",
             "same young explorer standing beside a powerful jungle river surrounded by giant tropical trees, dramatic natural lighting, realistic adventure movie, vertical composition, no text",
@@ -110,7 +134,6 @@ TOPICS = [
         ]
     },
 
-    # 4. FICTIONAL EMOTIONAL STORY
     {
         "category": "Story",
         "title": "The Dog That Waited Every Day",
@@ -123,6 +146,14 @@ TOPICS = [
             "The man knelt down, and the dog ran into his arms.",
             "Sometimes, loyalty remembers what time cannot erase."
         ],
+        "urdu": [
+            "ہر صبح ایک چھوٹا سا کتا پرانے ریلوے اسٹیشن کے پاس انتظار کرتا تھا۔",
+            "لوگ وہاں سے گزرتے رہتے، لیکن کتا اپنی پسندیدہ جگہ سے نہیں ہٹتا تھا۔",
+            "ایک بارش بھری شام ایک بزرگ آدمی نے اس کتے کو پہچان لیا۔",
+            "یہ وہی کتا تھا جسے اس نے کئی سال پہلے بچایا تھا۔",
+            "آدمی گھٹنوں کے بل بیٹھا اور کتا دوڑ کر اس کی بانہوں میں آ گیا۔",
+            "کبھی کبھی وفاداری وہ یاد رکھتی ہے جسے وقت بھی نہیں مٹا سکتا۔"
+        ],
         "prompts": [
             "cinematic photorealistic 3D animated film scene, small golden brown dog waiting beside an old quiet railway station, emotional atmosphere, soft morning light, vertical composition, no text",
             "same small golden brown dog sitting alone on railway station platform as commuters walk past, emotional cinematic composition, realistic 3D movie, vertical composition, no text",
@@ -133,7 +164,6 @@ TOPICS = [
         ]
     },
 
-    # 5. RESEARCH / ANIMALS
     {
         "category": "Research",
         "title": "The Amazing Intelligence of Octopuses",
@@ -146,6 +176,14 @@ TOPICS = [
             "They are among the most fascinating animals living in our oceans.",
             "What ocean creature should we explore next?"
         ],
+        "urdu": [
+            "آکٹوپس کے تین دل ہوتے ہیں اور اس کا خون نیلا ہوتا ہے۔",
+            "دو دل خون کو گلپھڑوں کی طرف بھیجتے ہیں جبکہ تیسرا دل باقی جسم کو خون پہنچاتا ہے۔",
+            "اس کا خون نیلا ہوتا ہے کیونکہ اس میں تانبے والا ایک پروٹین موجود ہوتا ہے جسے ہیموسائنن کہتے ہیں۔",
+            "آکٹوپس مشکل پہیلیاں حل کر سکتا ہے اور بہت چھوٹی جگہوں سے بھی گزر سکتا ہے۔",
+            "یہ سمندر میں رہنے والے سب سے دلچسپ جانوروں میں سے ایک ہے۔",
+            "آپ اگلی بار کس سمندری جانور کے بارے میں جاننا چاہیں گے؟"
+        ],
         "prompts": [
             "photorealistic underwater wildlife documentary, intelligent common octopus resting on a rock in clear blue ocean, detailed skin texture, vertical composition, no text",
             "scientifically inspired realistic octopus underwater with detailed anatomy visualization, blue ocean background, cinematic wildlife documentary, vertical composition, no text",
@@ -156,7 +194,6 @@ TOPICS = [
         ]
     },
 
-    # 6. REALISTIC ADVENTURE
     {
         "category": "Adventure",
         "title": "The Mountain Nobody Could Climb",
@@ -168,6 +205,14 @@ TOPICS = [
             "Inside a small cave, he discovered an old climbing flag.",
             "At sunrise, he finally reached the summit and looked across the endless mountains.",
             "Sometimes the greatest achievement is refusing to give up."
+        ],
+        "urdu": [
+            "ایک پہاڑی مہم جو نے اس چوٹی کو سر کرنے کا فیصلہ کیا جہاں اس کے گاؤں کا کوئی شخص نہیں پہنچا تھا۔",
+            "جیسے جیسے بادل پہاڑ کو ڈھانپنے لگے، راستہ مزید مشکل ہوتا گیا۔",
+            "اچانک برفانی طوفان آیا اور اسے پناہ تلاش کرنا پڑی۔",
+            "ایک چھوٹی غار میں اسے چڑھائی کا ایک پرانا جھنڈا ملا۔",
+            "سورج نکلتے ہی وہ آخرکار چوٹی پر پہنچ گیا اور دور تک پھیلے پہاڑوں کو دیکھنے لگا۔",
+            "کبھی کبھی سب سے بڑی کامیابی ہمت نہ ہارنا ہوتی ہے۔"
         ],
         "prompts": [
             "cinematic photorealistic 3D adventure movie, brave young male mountain explorer wearing red winter jacket beginning a climb toward an enormous snowy Himalayan peak, vertical composition, no text",
@@ -213,8 +258,9 @@ def verify_image(path):
 # ==========================================
 
 def make_ai_image(prompt, path, seed):
-    url = "https://image.pollinations.ai/prompt/" + quote(
-        prompt, safe=""
+    url = (
+        "https://image.pollinations.ai/prompt/"
+        + quote(prompt, safe="")
     )
 
     response = requests.get(
@@ -236,7 +282,9 @@ def make_ai_image(prompt, path, seed):
     if not response.headers.get(
         "content-type", ""
     ).startswith("image/"):
-        raise RuntimeError("AI service did not return an image")
+        raise RuntimeError(
+            "AI service did not return an image"
+        )
 
     path.write_bytes(response.content)
     verify_image(path)
@@ -279,7 +327,9 @@ def make_fallback_art(path, title, index):
 
 def get_scene_images(topic):
     images = []
-    seed_base = int(datetime.date.today().strftime("%Y%m%d"))
+    seed_base = int(
+        datetime.date.today().strftime("%Y%m%d")
+    )
 
     for index, prompt in enumerate(topic["prompts"]):
         path = SCENES / f"scene_{index + 1}.jpg"
@@ -290,7 +340,10 @@ def get_scene_images(topic):
                 path,
                 seed_base + index * 37
             )
-            print("AI cinematic scene created:", index + 1)
+            print(
+                "AI cinematic scene created:",
+                index + 1
+            )
 
         except Exception as error:
             print("AI image failed:", error)
@@ -306,14 +359,14 @@ def get_scene_images(topic):
 
 
 # ==========================================
-# FEMALE VOICE
+# URDU FEMALE VOICE
 # ==========================================
 
 async def save_tts(text, path):
     voice = edge_tts.Communicate(
         text,
         VOICE,
-        rate="+3%"
+        rate="+0%"
     )
 
     await voice.save(str(path))
@@ -334,6 +387,8 @@ def create_voice(sentences):
         clip_lengths.append(
             media_duration(clip)
         )
+
+        print("Urdu voice created:", index + 1)
 
     listing = OUT / "voice_list.txt"
 
@@ -360,7 +415,7 @@ def create_voice(sentences):
 
 
 # ==========================================
-# CAPTIONS
+# ENGLISH SUBTITLES
 # ==========================================
 
 def srt_time(seconds):
@@ -414,6 +469,7 @@ def create_captions(sentences, clip_lengths):
 def create_original_music(seconds):
     path = OUT / "music.wav"
     sample_rate = 44100
+
     total_samples = int(
         sample_rate * (seconds + 0.5)
     )
@@ -435,9 +491,15 @@ def create_original_music(seconds):
             )
 
             value = fade * (
-                0.035 * math.sin(2 * math.pi * 110 * t)
-                + 0.022 * math.sin(2 * math.pi * 164.81 * t)
-                + 0.012 * math.sin(2 * math.pi * 220 * t)
+                0.035 * math.sin(
+                    2 * math.pi * 110 * t
+                )
+                + 0.022 * math.sin(
+                    2 * math.pi * 164.81 * t
+                )
+                + 0.012 * math.sin(
+                    2 * math.pi * 220 * t
+                )
             )
 
             sample = int(
@@ -455,7 +517,7 @@ def create_original_music(seconds):
 
 # ==========================================
 # CINEMATIC CAMERA MOVEMENT
-# One new scene for each voice sentence.
+# Still images with zoom movement
 # ==========================================
 
 def create_moving_scene(
@@ -464,29 +526,28 @@ def create_moving_scene(
     seconds,
     index
 ):
-    frame_count = max(
-        1,
-        math.ceil(seconds * FPS)
-    )
-
     if index % 2 == 0:
         zoom = "min(zoom+0.0007,1.14)"
     else:
-        zoom = "max(1.0,1.14-on/10000)"
+        zoom = "max(1.0,1.14-on*0.0007)"
 
     video_filter = (
         "scale=1200:2134:"
         "force_original_aspect_ratio=increase,"
         "crop=1200:2134,"
         f"zoompan=z='{zoom}':"
-        f"d={frame_count}:"
-        "s=1080x1920:fps=30,"
+        "x='iw/2-(iw/zoom/2)':"
+        "y='ih/2-(ih/zoom/2)':"
+        "d=1:"
+        "s=1080x1920:"
+        "fps=30,"
         "setsar=1,"
         "format=yuv420p"
     )
 
     run_ffmpeg([
         "-loop", "1",
+        "-framerate", FPS,
         "-i", image_path,
         "-vf", video_filter,
         "-t", f"{seconds:.3f}",
@@ -524,6 +585,8 @@ def render_video(
         )
 
         scene_videos.append(scene_video)
+
+        print("Scene video rendered:", index + 1)
 
     listing = OUT / "scene_video_list.txt"
 
@@ -617,7 +680,9 @@ def youtube_service():
 
     credentials = Credentials(
         token=None,
-        refresh_token=os.environ["YOUTUBE_REFRESH_TOKEN"],
+        refresh_token=os.environ[
+            "YOUTUBE_REFRESH_TOKEN"
+        ],
         token_uri=client["token_uri"],
         client_id=client["client_id"],
         client_secret=client["client_secret"],
@@ -638,9 +703,7 @@ def upload_video(topic, video_path):
 
     body = {
         "snippet": {
-            "title": (
-                topic["title"] + " #Shorts"
-            ),
+            "title": topic["title"] + " #Shorts",
             "description": (
                 topic["description"]
                 + "\n\n"
@@ -715,10 +778,7 @@ def main():
             "YouTube GitHub secrets are missing."
         )
 
-    # One new topic per day, rotating through all six.
-    day_number = (
-        datetime.date.today().toordinal()
-    )
+    day_number = datetime.date.today().toordinal()
 
     topic = TOPICS[
         day_number % len(TOPICS)
@@ -727,10 +787,19 @@ def main():
     print("Today's category:", topic["category"])
     print("Today's video:", topic["title"])
 
+    if not (
+        len(topic["sentences"])
+        == len(topic["urdu"])
+        == len(topic["prompts"])
+    ):
+        raise RuntimeError(
+            "Topic sentences, Urdu narration and prompts do not match."
+        )
+
     images = get_scene_images(topic)
 
     voice_path, clip_lengths = create_voice(
-        topic["sentences"]
+        topic["urdu"]
     )
 
     total_seconds = create_captions(
@@ -757,3 +826,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+```
