@@ -35,7 +35,6 @@ jobs:
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY_STATUS: private
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: python main.py
 
       - name: Save generated files
