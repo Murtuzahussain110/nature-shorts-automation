@@ -2,13 +2,11 @@
 import os
 import json
 import math
-import random
 import wave
 import struct
 import asyncio
 import datetime
 import subprocess
-import textwrap
 from pathlib import Path
 from urllib.parse import quote
 
@@ -19,6 +17,10 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+
+# ==========================================
+# SETTINGS
+# ==========================================
 
 OUT = Path("output")
 SCENES = OUT / "scenes"
@@ -31,114 +33,157 @@ FPS = 30
 VOICE = "en-US-AriaNeural"
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 
+# ==========================================
+# CONTENT LIBRARY
+# Three categories rotate automatically.
+# Fictional stories are clearly identified.
+# ==========================================
+
 TOPICS = [
+
+    # 1. FICTIONAL SUSPENSE STORY
     {
-        "title": "Why the Ocean Looks Blue",
+        "category": "Story",
+        "title": "The Door Hidden in the Forest",
+        "description": "A mysterious fictional adventure story.",
         "sentences": [
-            "Have you ever wondered why the ocean looks blue?",
-            "Water absorbs red light more strongly than blue, while sunlight and the sky also influence the colors we see.",
-            "That is one reason deep ocean water often appears beautifully blue.",
-            "Nature is full of science hiding in plain sight."
-        ],
-        "searches": [
-            "deep blue ocean sunlight",
-            "sun rays underwater ocean",
-            "blue ocean waves aerial",
-            "clear ocean coastline"
+            "A young explorer found a strange door deep inside an abandoned forest.",
+            "There were no walls around it, only an old wooden door standing between giant trees.",
+            "When he slowly opened it, a golden light appeared from the other side.",
+            "He stepped closer and heard someone whisper his name.",
+            "But when he turned around, the entire forest had disappeared.",
+            "Where do you think that mysterious door led?"
         ],
         "prompts": [
-            "photorealistic deep blue ocean from above, sunlight glittering on waves, nature documentary, no text",
-            "underwater view looking up at sun rays through clear blue seawater, photorealistic, no text",
-            "dramatic close view of deep blue ocean waves sparkling in sunlight, no text",
-            "aerial view of vivid blue ocean meeting rugged coastline, photorealistic, no text"
+            "cinematic photorealistic 3D film scene, young male explorer wearing a dark green adventure jacket discovering an ancient wooden door standing alone in a dense mysterious forest, dramatic fog, realistic human proportions, vertical composition, no text",
+            "same young male explorer examining an ancient wooden door surrounded by enormous moss covered trees, cinematic forest atmosphere, realistic 3D movie quality, vertical composition, no text",
+            "close view of the same ancient wooden door slowly opening with mysterious golden light pouring through, explorer standing nearby, cinematic realistic 3D film lighting, vertical composition, no text",
+            "same young explorer looking frightened as mysterious golden light illuminates his face, dark forest, cinematic close-up, realistic 3D movie quality, vertical composition, no text",
+            "same explorer standing in a strange empty glowing landscape after the forest has vanished, mysterious atmosphere, cinematic photorealistic 3D film, vertical composition, no text",
+            "mysterious ancient wooden door standing alone in a surreal golden landscape, dramatic cinematic ending, realistic 3D film scene, vertical composition, no text"
         ]
     },
+
+    # 2. RESEARCH / SCIENCE
     {
-        "title": "How Waterfalls Are Formed",
+        "category": "Research",
+        "title": "What Happens Inside a Black Hole?",
+        "description": "A short educational science video about black holes.",
         "sentences": [
-            "A waterfall forms when flowing water moves over a sudden drop in the land.",
-            "Over time, water and the rocks it carries can wear away softer layers of stone.",
-            "This erosion can slowly move a waterfall upstream and shape the valley around it.",
-            "A beautiful waterfall can tell a story millions of years in the making."
-        ],
-        "searches": [
-            "powerful waterfall forest",
-            "water flowing over rocky cliff",
-            "waterfall mist green valley",
-            "river gorge waterfall landscape"
+            "Imagine falling toward one of the strangest objects in the universe.",
+            "A black hole has gravity so powerful that even light cannot escape from inside its event horizon.",
+            "As you approach, gravity can stretch objects through a process scientists call spaghettification.",
+            "We cannot see inside the event horizon because light cannot travel back out.",
+            "Scientists study black holes by observing how they affect nearby stars and gas.",
+            "The universe still holds mysteries we are only beginning to understand."
         ],
         "prompts": [
-            "majestic waterfall plunging into a forest pool, cinematic nature documentary, no text",
-            "close-up rushing water flowing over layered dark rocks, photorealistic, no text",
-            "mist rising from waterfall surrounded by lush green forest, cinematic, no text",
-            "aerial river gorge and waterfall cutting through green valley, photorealistic, no text"
+            "cinematic scientifically inspired view of a gigantic black hole in deep space with glowing accretion disk, stars and nebula, photorealistic space documentary, vertical composition, no text",
+            "scientifically inspired black hole with bright glowing accretion disk and distorted stars caused by gravitational lensing, realistic astronomy visualization, vertical composition, no text",
+            "scientific visualization of a spacecraft approaching a black hole with curved light and dramatic gravitational lensing, cinematic realistic space documentary, vertical composition, no text",
+            "dark black hole event horizon surrounded by glowing orange and blue accretion disk, detailed realistic space visualization, vertical composition, no text",
+            "astronomical observatory telescope looking toward a star field, scientists studying distant galaxies, cinematic photorealistic documentary, vertical composition, no text",
+            "beautiful deep space scene with distant galaxies, colorful nebula and stars, breathtaking cinematic science documentary, vertical composition, no text"
         ]
     },
+
+    # 3. REALISTIC ADVENTURE
     {
-        "title": "The Secret Life of Trees",
+        "category": "Adventure",
+        "title": "Lost in the World's Wildest Jungle",
+        "description": "A fictional cinematic survival adventure.",
         "sentences": [
-            "Trees do much more than provide shade and beautiful scenery.",
-            "Their leaves use sunlight to help turn water and carbon dioxide into sugars.",
-            "Tree roots also help hold soil in place and support forest ecosystems.",
-            "A forest is not just a group of trees. It is a living community."
-        ],
-        "searches": [
-            "sunlight through green forest canopy",
-            "green leaves sunlight close up",
-            "tree roots forest soil",
-            "misty dense forest aerial"
+            "Imagine waking up alone in a jungle you have never seen before.",
+            "The trees are enormous, the river is rushing, and strange sounds surround you.",
+            "You find an old wooden bridge, but it is hanging over a deep waterfall.",
+            "Suddenly, you notice fresh footprints leading toward a hidden cave.",
+            "You enter the cave and discover a mysterious abandoned camp.",
+            "Would you stay or keep exploring?"
         ],
         "prompts": [
-            "towering ancient forest with sunlight through green canopy, photorealistic, no text",
-            "macro fresh green leaves glowing in sunlight, botanical photography, no text",
-            "large tree roots gripping rich forest soil, nature documentary, no text",
-            "aerial lush green forest fading into morning mist, photorealistic, no text"
+            "cinematic photorealistic 3D adventure film scene, lone young male explorer in outdoor survival clothing waking up in a vast tropical jungle, giant trees and morning mist, vertical composition, no text",
+            "same young explorer standing beside a powerful jungle river surrounded by giant tropical trees, dramatic natural lighting, realistic adventure movie, vertical composition, no text",
+            "same explorer carefully approaching an old wooden rope bridge above a huge jungle waterfall, cinematic wide perspective, photorealistic 3D movie, vertical composition, no text",
+            "close view of muddy footprints leading through dense jungle toward a mysterious dark cave, explorer visible in background, cinematic realism, vertical composition, no text",
+            "same explorer entering a mysterious cave with an abandoned old camping site and scattered equipment, dramatic flashlight lighting, realistic 3D adventure film, vertical composition, no text",
+            "mysterious abandoned jungle camp inside a cave illuminated by a beam of sunlight, cinematic adventure movie ending, photorealistic, vertical composition, no text"
         ]
     },
+
+    # 4. FICTIONAL EMOTIONAL STORY
     {
-        "title": "The Power of Glaciers",
+        "category": "Story",
+        "title": "The Dog That Waited Every Day",
+        "description": "A fictional emotional animal story.",
         "sentences": [
-            "Glaciers are enormous masses of ice that move slowly under their own weight.",
-            "As they move, they scrape rock, carry sediment, and reshape mountain valleys.",
-            "Glaciers also store a large amount of the world's fresh water.",
-            "Their changing size is one sign scientists monitor in a warming climate."
-        ],
-        "searches": [
-            "glacier mountain valley aerial",
-            "blue glacier ice closeup",
-            "glacier flowing between mountains",
-            "snow glacier lake landscape"
+            "Every morning, a little dog waited beside an old railway station.",
+            "People passed by, but the dog never moved from its favorite spot.",
+            "One rainy evening, an elderly man recognized the dog.",
+            "It was the same dog he had rescued many years ago.",
+            "The man knelt down, and the dog ran into his arms.",
+            "Sometimes, loyalty remembers what time cannot erase."
         ],
         "prompts": [
-            "enormous glacier winding through high mountain valley, photorealistic, no text",
-            "detailed blue glacier ice with natural cracks, close-up, no text",
-            "aerial glacier flowing between rugged snowy peaks, photorealistic, no text",
-            "glacial lake beneath towering snow covered mountains, cinematic, no text"
+            "cinematic photorealistic 3D animated film scene, small golden brown dog waiting beside an old quiet railway station, emotional atmosphere, soft morning light, vertical composition, no text",
+            "same small golden brown dog sitting alone on railway station platform as commuters walk past, emotional cinematic composition, realistic 3D movie, vertical composition, no text",
+            "elderly man in a brown coat standing in gentle rain at an old railway station noticing the same small golden brown dog, cinematic emotional film scene, vertical composition, no text",
+            "close-up of elderly man's emotional face recognizing the dog, rainy station background, photorealistic 3D animated movie, vertical composition, no text",
+            "same elderly man kneeling down and hugging the happy golden brown dog on the railway platform, warm emotional cinematic lighting, vertical composition, no text",
+            "elderly man walking home with the golden brown dog beside him at sunset, beautiful emotional movie ending, realistic 3D animation, vertical composition, no text"
         ]
     },
+
+    # 5. RESEARCH / ANIMALS
     {
-        "title": "How Bees Help Nature",
+        "category": "Research",
+        "title": "The Amazing Intelligence of Octopuses",
+        "description": "An educational wildlife research short.",
         "sentences": [
-            "Bees are tiny animals with an enormous role in many ecosystems.",
-            "As they visit flowers for nectar, they transfer pollen between plants.",
-            "This helps many plants produce fruits and seeds.",
-            "Protecting pollinators helps protect the natural world around us."
-        ],
-        "searches": [
-            "honey bee on flower macro",
-            "bee collecting pollen close up",
-            "wildflower meadow bees",
-            "colorful flowers meadow nature"
+            "An octopus has three hearts and blue blood.",
+            "Two hearts pump blood toward the gills, while the third sends it to the rest of the body.",
+            "Its blood is blue because it uses a copper-rich protein called hemocyanin.",
+            "Octopuses can solve puzzles and squeeze through surprisingly tiny openings.",
+            "They are among the most fascinating animals living in our oceans.",
+            "What ocean creature should we explore next?"
         ],
         "prompts": [
-            "macro honeybee visiting purple wildflower, realistic wildlife photography, no text",
-            "close-up honeybee covered in golden pollen, macro photography, no text",
-            "sunlit wildflower meadow alive with pollinators, nature documentary, no text",
-            "colorful wildflowers across green meadow at sunrise, photorealistic, no text"
+            "photorealistic underwater wildlife documentary, intelligent common octopus resting on a rock in clear blue ocean, detailed skin texture, vertical composition, no text",
+            "scientifically inspired realistic octopus underwater with detailed anatomy visualization, blue ocean background, cinematic wildlife documentary, vertical composition, no text",
+            "macro close-up of octopus skin and tentacles underwater, beautiful natural blue light, photorealistic marine documentary, vertical composition, no text",
+            "octopus exploring a glass puzzle container on ocean research table, realistic scientific documentary scene, vertical composition, no text",
+            "majestic octopus swimming through a colorful coral reef, realistic underwater wildlife photography, vertical composition, no text",
+            "beautiful deep blue underwater reef with an octopus disappearing into the ocean, cinematic documentary ending, vertical composition, no text"
+        ]
+    },
+
+    # 6. REALISTIC ADVENTURE
+    {
+        "category": "Adventure",
+        "title": "The Mountain Nobody Could Climb",
+        "description": "A fictional high-altitude adventure.",
+        "sentences": [
+            "A mountain explorer decided to climb a peak nobody in his village had reached.",
+            "The trail became steeper as clouds covered the rocky mountainside.",
+            "A sudden snowstorm forced him to search for shelter.",
+            "Inside a small cave, he discovered an old climbing flag.",
+            "At sunrise, he finally reached the summit and looked across the endless mountains.",
+            "Sometimes the greatest achievement is refusing to give up."
+        ],
+        "prompts": [
+            "cinematic photorealistic 3D adventure movie, brave young male mountain explorer wearing red winter jacket beginning a climb toward an enormous snowy Himalayan peak, vertical composition, no text",
+            "same explorer climbing a steep rocky Himalayan mountain trail as dramatic clouds roll over the mountains, realistic cinematic adventure film, vertical composition, no text",
+            "same explorer caught in a powerful snowstorm on a high mountain, searching for shelter, dramatic realistic 3D movie scene, vertical composition, no text",
+            "same explorer inside a small rocky mountain cave discovering an old faded climbing flag, warm lantern light, cinematic realistic film, vertical composition, no text",
+            "same explorer standing on a snowy Himalayan summit at sunrise overlooking endless mountain ranges, breathtaking cinematic landscape, vertical composition, no text",
+            "wide cinematic view of the mountain summit glowing at sunrise, explorer standing proudly in the distance, photorealistic adventure movie ending, vertical composition, no text"
         ]
     }
 ]
 
+
+# ==========================================
+# UTILITIES
+# ==========================================
 
 def run_ffmpeg(args):
     subprocess.run(
@@ -163,8 +208,11 @@ def verify_image(path):
         image.verify()
 
 
+# ==========================================
+# AI IMAGE GENERATION
+# ==========================================
+
 def make_ai_image(prompt, path, seed):
-    # Free AI image endpoint. Availability can change.
     url = "https://image.pollinations.ai/prompt/" + quote(
         prompt, safe=""
     )
@@ -177,87 +225,37 @@ def make_ai_image(prompt, path, seed):
             "seed": seed,
             "nologo": "true"
         },
-        headers={"User-Agent": "NatureShortsAutomation/1.0"},
-        timeout=100
+        headers={
+            "User-Agent": "NatureStoriesAutomation/1.0"
+        },
+        timeout=120
     )
 
     response.raise_for_status()
 
-    if not response.headers.get("content-type", "").startswith("image/"):
+    if not response.headers.get(
+        "content-type", ""
+    ).startswith("image/"):
         raise RuntimeError("AI service did not return an image")
 
     path.write_bytes(response.content)
     verify_image(path)
 
 
-def make_commons_image(search_term, path):
-    # Backup image source. No API key required.
-    api = "https://commons.wikimedia.org/w/api.php"
-    headers = {
-        "User-Agent": "NatureShortsAutomation/1.0"
-    }
-
-    response = requests.get(
-        api,
-        params={
-            "action": "query",
-            "generator": "search",
-            "gsrsearch": "filetype:bitmap " + search_term,
-            "gsrnamespace": 6,
-            "gsrlimit": 10,
-            "prop": "imageinfo",
-            "iiprop": "url",
-            "iiurlwidth": 1200,
-            "format": "json"
-        },
-        headers=headers,
-        timeout=35
-    )
-
-    response.raise_for_status()
-
-    pages = list(
-        response.json().get("query", {}).get("pages", {}).values()
-    )
-    random.shuffle(pages)
-
-    for page in pages:
-        info = page.get("imageinfo", [{}])[0]
-        image_url = info.get("thumburl") or info.get("url")
-
-        if not image_url:
-            continue
-
-        try:
-            image_response = requests.get(
-                image_url,
-                headers=headers,
-                timeout=40
-            )
-            image_response.raise_for_status()
-            path.write_bytes(image_response.content)
-            verify_image(path)
-            return
-        except Exception:
-            continue
-
-    raise RuntimeError("No backup image found")
-
-
 def make_fallback_art(path, title, index):
     image = Image.new(
         "RGB",
         (WIDTH, HEIGHT),
-        (5, 30 + index * 12, 65 + index * 10)
+        (5, 15 + index * 10, 35 + index * 15)
     )
 
     draw = ImageDraw.Draw(image)
 
     for y in range(HEIGHT):
-        shade = int(25 + 100 * y / HEIGHT)
+        shade = int(20 + 100 * y / HEIGHT)
         draw.line(
             (0, y, WIDTH, y),
-            fill=(4, shade // 2, shade)
+            fill=(3, shade // 2, shade)
         )
 
     try:
@@ -269,11 +267,11 @@ def make_fallback_art(path, title, index):
         font = ImageFont.load_default()
 
     draw.multiline_text(
-        (80, 1250),
-        textwrap.fill(title, 22),
+        (75, 1250),
+        title,
         font=font,
         fill="white",
-        spacing=18
+        spacing=15
     )
 
     image.save(path, quality=92)
@@ -283,35 +281,33 @@ def get_scene_images(topic):
     images = []
     seed_base = int(datetime.date.today().strftime("%Y%m%d"))
 
-    for index in range(4):
+    for index, prompt in enumerate(topic["prompts"]):
         path = SCENES / f"scene_{index + 1}.jpg"
 
         try:
             make_ai_image(
-                topic["prompts"][index],
+                prompt,
                 path,
-                seed_base + index * 31
+                seed_base + index * 37
             )
-            print("AI image generated:", index + 1)
+            print("AI cinematic scene created:", index + 1)
 
         except Exception as error:
-            print("AI image unavailable:", error)
-
-            try:
-                make_commons_image(
-                    topic["searches"][index],
-                    path
-                )
-                print("Backup image downloaded:", index + 1)
-
-            except Exception as backup_error:
-                print("Backup unavailable:", backup_error)
-                make_fallback_art(path, topic["title"], index)
+            print("AI image failed:", error)
+            make_fallback_art(
+                path,
+                topic["title"],
+                index
+            )
 
         images.append(path)
 
     return images
 
+
+# ==========================================
+# FEMALE VOICE
+# ==========================================
 
 async def save_tts(text, path):
     voice = edge_tts.Communicate(
@@ -330,10 +326,14 @@ def create_voice(sentences):
     for index, sentence in enumerate(sentences):
         clip = OUT / f"voice_{index + 1}.mp3"
 
-        asyncio.run(save_tts(sentence, clip))
+        asyncio.run(
+            save_tts(sentence, clip)
+        )
 
         clips.append(clip)
-        clip_lengths.append(media_duration(clip))
+        clip_lengths.append(
+            media_duration(clip)
+        )
 
     listing = OUT / "voice_list.txt"
 
@@ -359,12 +359,22 @@ def create_voice(sentences):
     return combined, clip_lengths
 
 
+# ==========================================
+# CAPTIONS
+# ==========================================
+
 def srt_time(seconds):
     milliseconds = int(round(seconds * 1000))
 
-    hours, milliseconds = divmod(milliseconds, 3600000)
-    minutes, milliseconds = divmod(milliseconds, 60000)
-    secs, milliseconds = divmod(milliseconds, 1000)
+    hours, milliseconds = divmod(
+        milliseconds, 3600000
+    )
+    minutes, milliseconds = divmod(
+        milliseconds, 60000
+    )
+    secs, milliseconds = divmod(
+        milliseconds, 1000
+    )
 
     return (
         f"{hours:02}:{minutes:02}:"
@@ -381,7 +391,8 @@ def create_captions(sentences, clip_lengths):
     ):
         rows.extend([
             str(index),
-            f"{srt_time(current)} --> {srt_time(current + seconds)}",
+            f"{srt_time(current)} --> "
+            f"{srt_time(current + seconds)}",
             sentence,
             ""
         ])
@@ -396,11 +407,16 @@ def create_captions(sentences, clip_lengths):
     return current
 
 
+# ==========================================
+# ORIGINAL BACKGROUND MUSIC
+# ==========================================
+
 def create_original_music(seconds):
-    # Original synthesized ambient music.
     path = OUT / "music.wav"
     sample_rate = 44100
-    total_samples = int(sample_rate * (seconds + 0.2))
+    total_samples = int(
+        sample_rate * (seconds + 0.5)
+    )
 
     with wave.open(str(path), "w") as audio:
         audio.setnchannels(2)
@@ -428,27 +444,45 @@ def create_original_music(seconds):
                 max(-1.0, min(1.0, value)) * 32767
             )
 
-            frames.extend(struct.pack("<hh", sample, sample))
+            frames.extend(
+                struct.pack("<hh", sample, sample)
+            )
 
         audio.writeframes(frames)
 
     return path
 
 
-def create_moving_scene(image_path, output_path, seconds, index):
-    frame_count = max(1, math.ceil(seconds * FPS))
+# ==========================================
+# CINEMATIC CAMERA MOVEMENT
+# One new scene for each voice sentence.
+# ==========================================
+
+def create_moving_scene(
+    image_path,
+    output_path,
+    seconds,
+    index
+):
+    frame_count = max(
+        1,
+        math.ceil(seconds * FPS)
+    )
 
     if index % 2 == 0:
-        zoom = "min(zoom+0.0007,1.13)"
+        zoom = "min(zoom+0.0007,1.14)"
     else:
-        zoom = "max(1.0,1.13-on/10000)"
+        zoom = "max(1.0,1.14-on/10000)"
 
     video_filter = (
-        "scale=1200:2134:force_original_aspect_ratio=increase,"
+        "scale=1200:2134:"
+        "force_original_aspect_ratio=increase,"
         "crop=1200:2134,"
-        f"zoompan=z='{zoom}':d={frame_count}:"
-        f"s=1080x1920:fps={FPS},"
-        "setsar=1,format=yuv420p"
+        f"zoompan=z='{zoom}':"
+        f"d={frame_count}:"
+        "s=1080x1920:fps=30,"
+        "setsar=1,"
+        "format=yuv420p"
     )
 
     run_ffmpeg([
@@ -465,17 +499,27 @@ def create_moving_scene(image_path, output_path, seconds, index):
     ])
 
 
-def render_video(images, voice_path, total_seconds):
-    scene_seconds = total_seconds / len(images)
+# ==========================================
+# FINAL VIDEO
+# ==========================================
+
+def render_video(
+    images,
+    voice_path,
+    clip_lengths,
+    total_seconds
+):
     scene_videos = []
 
     for index, image_path in enumerate(images):
-        scene_video = OUT / f"scene_video_{index + 1}.mp4"
+        scene_video = (
+            OUT / f"scene_video_{index + 1}.mp4"
+        )
 
         create_moving_scene(
             image_path,
             scene_video,
-            scene_seconds,
+            clip_lengths[index],
             index
         )
 
@@ -501,7 +545,9 @@ def render_video(images, voice_path, total_seconds):
         silent_video
     ])
 
-    music_path = create_original_music(total_seconds)
+    music_path = create_original_music(
+        total_seconds
+    )
 
     subtitle_path = (
         OUT / "captions.srt"
@@ -509,10 +555,17 @@ def render_video(images, voice_path, total_seconds):
 
     subtitle_filter = (
         f"subtitles='{subtitle_path}':"
-        "force_style='FontName=DejaVu Sans,FontSize=17,"
-        "Bold=1,PrimaryColour=&H00FFFFFF,"
-        "OutlineColour=&H00101010,BorderStyle=1,"
-        "Outline=3,Shadow=1,Alignment=2,MarginV=230'"
+        "force_style='"
+        "FontName=DejaVu Sans,"
+        "FontSize=17,"
+        "Bold=1,"
+        "PrimaryColour=&H00FFFFFF,"
+        "OutlineColour=&H00101010,"
+        "BorderStyle=1,"
+        "Outline=3,"
+        "Shadow=1,"
+        "Alignment=2,"
+        "MarginV=230'"
     )
 
     final_video = OUT / "short.mp4"
@@ -527,7 +580,8 @@ def render_video(images, voice_path, total_seconds):
         f"[0:v]{subtitle_filter}[v];"
         "[1:a]volume=1.0[voice];"
         "[2:a]volume=0.12[music];"
-        "[voice][music]amix=inputs=2:duration=first:"
+        "[voice][music]amix=inputs=2:"
+        "duration=first:"
         "dropout_transition=2[a]",
 
         "-map", "[v]",
@@ -546,6 +600,10 @@ def render_video(images, voice_path, total_seconds):
 
     return final_video
 
+
+# ==========================================
+# YOUTUBE CONNECTION
+# ==========================================
 
 def youtube_service():
     client_json = json.loads(
@@ -580,25 +638,34 @@ def upload_video(topic, video_path):
 
     body = {
         "snippet": {
-            "title": topic["title"] + " | Nature & Science #Shorts",
+            "title": (
+                topic["title"] + " #Shorts"
+            ),
             "description": (
-                topic["sentences"][0]
-                + "\n\nDaily nature, science and travel facts."
-                + "\n\n#Shorts #Nature #Science #Travel"
+                topic["description"]
+                + "\n\n"
+                + "Discover stories, science, "
+                + "adventure and amazing facts."
+                + "\n\n"
+                + "#Shorts #Stories #Science "
+                + "#Adventure #Facts"
             ),
             "tags": [
-                "nature",
+                "shorts",
+                "stories",
                 "science",
-                "travel",
-                "wildlife",
+                "adventure",
+                "mystery",
                 "facts",
-                "shorts"
+                "nature",
+                "documentary"
             ],
             "categoryId": "27"
         },
         "status": {
             "privacyStatus": os.getenv(
-                "YOUTUBE_PRIVACY_STATUS", "private"
+                "YOUTUBE_PRIVACY_STATUS",
+                "private"
             ),
             "selfDeclaredMadeForKids": False
         }
@@ -629,24 +696,36 @@ def upload_video(topic, video_path):
                 "%"
             )
 
-    print("YouTube video uploaded. ID:", response.get("id"))
+    print(
+        "YouTube video uploaded. ID:",
+        response.get("id")
+    )
 
+
+# ==========================================
+# MAIN AUTOMATION
+# ==========================================
 
 def main():
     if (
         not os.getenv("YOUTUBE_CLIENT_JSON")
         or not os.getenv("YOUTUBE_REFRESH_TOKEN")
     ):
-        raise RuntimeError("YouTube GitHub secrets are missing.")
+        raise RuntimeError(
+            "YouTube GitHub secrets are missing."
+        )
 
-    # Select a different topic each day.
-    topic_index = (
-        datetime.date.today().toordinal() % len(TOPICS)
+    # One new topic per day, rotating through all six.
+    day_number = (
+        datetime.date.today().toordinal()
     )
 
-    topic = TOPICS[topic_index]
+    topic = TOPICS[
+        day_number % len(TOPICS)
+    ]
 
-    print("Today's topic:", topic["title"])
+    print("Today's category:", topic["category"])
+    print("Today's video:", topic["title"])
 
     images = get_scene_images(topic)
 
@@ -662,6 +741,7 @@ def main():
     video_path = render_video(
         images,
         voice_path,
+        clip_lengths,
         total_seconds
     )
 
@@ -677,4 +757,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
