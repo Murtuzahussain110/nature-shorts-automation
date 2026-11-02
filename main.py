@@ -1,9 +1,13 @@
+
 import os
 import json
 import random
 import subprocess
-import textwrap
+import asyncio
+import html
+import re
 from pathlib import Path
+from xml.sax.saxutils import escape
 
 import requests
 from PIL import Image
@@ -14,9 +18,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 
-# =========================
+# ==========================================
 # SETTINGS
-# =========================
+# ==========================================
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"
@@ -29,18 +33,24 @@ VIDEO_FILE = OUTPUT_DIR / "nature_short.mp4"
 VOICE_FILE = OUTPUT_DIR / "voice.mp3"
 SUBTITLE_FILE = OUTPUT_DIR / "subtitles.srt"
 CONCAT_FILE = OUTPUT_DIR / "clips.txt"
+CREDITS_FILE = OUTPUT_DIR / "image_credits.txt"
 
 WIDTH = 1080
 HEIGHT = 1920
 FPS = 25
 
 VOICE = "ur-PK-UzmaNeural"
-PEXELS_API = "https://api.pexels.com/v1/search"
+
+WIKIMEDIA_API = "https://commons.wikimedia.org/w/api.php"
+
+HEADERS = {
+    "User-Agent": "NatureShortsAutomation/1.0 (personal video project)"
+}
 
 
-# =========================
+# ==========================================
 # STORIES
-# =========================
+# ==========================================
 
 STORIES = [
     {
@@ -54,31 +64,31 @@ STORIES = [
             "کیا یہ نقشہ اسے جنگل سے باہر نکال سکتا تھا؟"
         ),
         "scenes": [
-            ("tropical jungle dense forest", "A mysterious jungle stretches endlessly."),
-            ("jungle narrow forest path", "He follows a lonely path into the forest."),
-            ("dark jungle sunlight trees", "Strange sounds come from the darkness."),
-            ("wild animal eyes dark forest", "Two glowing eyes appear behind the trees."),
-            ("old map on forest ground", "An old map is hidden beneath the leaves."),
-            ("jungle sunrise forest river", "A new path appears beyond the trees.")
+            ("tropical rainforest jungle", "A mysterious jungle stretches endlessly."),
+            ("dense forest walking trail", "He follows a lonely path into the forest."),
+            ("dark rainforest sunlight trees", "Strange sounds come from the darkness."),
+            ("wild animal in forest", "Something watches him from the trees."),
+            ("old map ancient paper", "An old map is hidden beneath the leaves."),
+            ("jungle river sunrise", "A new path appears beyond the trees.")
         ]
     },
     {
         "title": "The Secret Hidden Under the Ocean",
         "narration": (
-            "سمندر کی گہرائی میں ایک غوطہ خور کو ایک پراسرار دروازہ ملا۔ "
-            "یہ دروازہ عام پتھروں جیسا نہیں تھا۔ "
-            "اس پر عجیب نشان بنے ہوئے تھے۔ "
-            "جیسے ہی اس نے دروازے کو چھوا، روشنی چمکنے لگی۔ "
-            "اس کے سامنے ایک پرانی ڈوبی ہوئی دنیا تھی۔ "
-            "آخر یہ جگہ ہزاروں سال سے کس راز کو چھپائے ہوئے تھی؟"
+            "سمندر کی گہرائی میں ایک غوطہ خور کو ایک پراسرار جگہ ملی۔ "
+            "وہاں پرانے پتھر اور عجیب نشان موجود تھے۔ "
+            "جیسے ہی وہ آگے بڑھا، اسے ایک ڈوبی ہوئی عمارت نظر آئی۔ "
+            "اس کے دروازے پر عجیب نقش بنے ہوئے تھے۔ "
+            "وہاں کوئی ہزاروں سال پہلے رہتا تھا۔ "
+            "آخر یہ جگہ کس راز کو چھپائے ہوئے تھی؟"
         ),
         "scenes": [
             ("deep blue ocean underwater", "Deep beneath the ocean, something waits."),
-            ("scuba diver underwater rocks", "A diver discovers a strange structure."),
-            ("underwater ancient stone door", "Mysterious symbols cover the doorway."),
-            ("underwater glowing blue light", "The ancient door begins to glow."),
-            ("underwater lost ancient city ruins", "A forgotten city appears underwater."),
-            ("underwater sun rays ocean ruins", "The ocean keeps its secret.")
+            ("scuba diver underwater", "A diver explores the deep ocean."),
+            ("underwater ancient stone ruins", "Mysterious stones appear below the surface."),
+            ("underwater ancient architecture", "A forgotten structure appears."),
+            ("underwater coral reef fish", "Life continues around the ancient ruins."),
+            ("sunlight underwater ocean", "The ocean keeps its secrets.")
         ]
     },
     {
@@ -92,18 +102,18 @@ STORIES = [
             "غار کے اندر کیا تھا، یہ آج تک کوئی نہیں جانتا۔"
         ),
         "scenes": [
-            ("dramatic mountain village night", "A quiet village hides a strange mystery."),
-            ("mountains glowing light night", "A mysterious light appears every night."),
-            ("hiker walking mountain trail night", "A young explorer follows the light."),
+            ("mountain village at night", "A quiet village hides a strange mystery."),
+            ("mountains night landscape", "A mysterious light appears every night."),
+            ("hiker mountain trail", "A young explorer follows the light."),
             ("rocky mountain cave entrance", "He discovers an ancient cave."),
-            ("mysterious cave glowing crystals", "A strange glow fills the cave."),
-            ("mountain sunrise mist landscape", "The mystery remains unsolved.")
+            ("glowing cave crystals", "A strange glow fills the cave."),
+            ("mountain sunrise landscape", "The mystery remains unsolved.")
         ]
     },
     {
         "title": "The Forest That Never Sleeps",
         "narration": (
-            "دنیا میں ایک ایسا جنگل بھی ہے جہاں رات کو درختوں سے آوازیں آتی ہیں۔ "
+            "دنیا میں ایک ایسا جنگل بھی ہے جہاں رات کو عجیب آوازیں آتی ہیں۔ "
             "ایک تحقیقاتی ٹیم وہاں پہنچی۔ "
             "انہوں نے کیمرے لگائے اور رات کا انتظار کیا۔ "
             "آدھی رات کو درختوں کے درمیان حرکت محسوس ہوئی۔ "
@@ -111,12 +121,12 @@ STORIES = [
             "کیا یہ کوئی جانور تھا یا قدرت کا کوئی انوکھا راز؟"
         ),
         "scenes": [
-            ("mysterious forest fog tall trees", "A forest hides an unusual secret."),
+            ("foggy forest tall trees", "A forest hides an unusual secret."),
             ("scientists exploring forest", "A research team enters the forest."),
-            ("wildlife camera in forest at night", "Cameras watch the forest after dark."),
-            ("dark forest moonlight mist", "Something moves between the trees."),
-            ("forest animal silhouette night", "The camera captures a mysterious shape."),
-            ("sunlight through green forest", "Nature still holds many secrets.")
+            ("wildlife camera forest", "Cameras watch the forest after dark."),
+            ("dark forest moonlight", "Something moves between the trees."),
+            ("wild animal forest night", "The camera captures a mysterious visitor."),
+            ("sunlight green forest", "Nature still holds many secrets.")
         ]
     },
     {
@@ -130,12 +140,12 @@ STORIES = [
             "کیا وہ بحفاظت منزل تک پہنچ پائے گا؟"
         ),
         "scenes": [
-            ("dangerous narrow mountain road", "A road winds through towering mountains."),
+            ("narrow mountain road landscape", "A road winds through towering mountains."),
             ("mountain road deep valley", "A deep valley lies beside the road."),
-            ("vehicle driving mountain road", "A driver carefully moves forward."),
-            ("thick fog mountain highway", "Suddenly, thick fog covers the road."),
-            ("winding road mountain mist", "The road disappears into the mist."),
-            ("beautiful mountain road sunrise", "At last, the road opens ahead.")
+            ("car driving mountain road", "A driver carefully moves forward."),
+            ("foggy mountain highway", "Suddenly, thick fog covers the road."),
+            ("winding mountain road mist", "The road disappears into the mist."),
+            ("mountain road sunrise", "At last, the road opens ahead.")
         ]
     },
     {
@@ -149,23 +159,22 @@ STORIES = [
             "دنیا میں آج بھی کئی ایسی جگہیں ہیں جو انسانوں کی نظروں سے چھپی ہوئی ہیں۔"
         ),
         "scenes": [
-            ("majestic green mountains landscape", "A traveler explores the mountains."),
-            ("narrow mountain hiking trail", "A hidden trail leads deeper into the hills."),
-            ("beautiful green mountain valley", "A breathtaking valley appears."),
-            ("clear river flowing green meadow", "Crystal-clear water flows through the valley."),
-            ("snow capped mountains peaceful nature", "Snow-covered peaks surround the paradise."),
-            ("sunrise alpine valley landscape", "Some beautiful places remain undiscovered.")
+            ("green mountain landscape", "A traveler explores the mountains."),
+            ("mountain hiking trail", "A hidden trail leads deeper into the hills."),
+            ("beautiful alpine valley", "A breathtaking valley appears."),
+            ("clear river green meadow", "Crystal-clear water flows through the valley."),
+            ("snow capped mountains", "Snow-covered peaks surround the paradise."),
+            ("sunrise mountain valley", "Some beautiful places remain undiscovered.")
         ]
     }
 ]
 
 
-# =========================
-# RUN COMMAND
-# =========================
+# ==========================================
+# COMMAND HELPER
+# ==========================================
 
 def run_command(command):
-    print("Running:", " ".join(map(str, command)))
     subprocess.run(
         command,
         check=True,
@@ -178,8 +187,7 @@ def run_command(command):
 def get_duration(file_path):
     result = subprocess.run(
         [
-            "ffprobe",
-            "-v", "error",
+            "ffprobe", "-v", "error",
             "-show_entries", "format=duration",
             "-of", "default=noprint_wrappers=1:nokey=1",
             str(file_path)
@@ -191,98 +199,151 @@ def get_duration(file_path):
     return float(result.stdout.strip())
 
 
-# =========================
-# DOWNLOAD PEXELS PHOTOS
-# =========================
+# ==========================================
+# WIKIMEDIA PHOTO SEARCH
+# ==========================================
 
-def generate_image(query, scene_number, used_photo_ids):
-    api_key = os.getenv("PEXELS_API_KEY")
-
-    if not api_key:
-        raise RuntimeError(
-            "PEXELS_API_KEY secret is missing from GitHub."
-        )
-
-    print(f"Searching Pexels scene {scene_number}: {query}")
-
+def search_wikimedia(query, used_ids):
     response = requests.get(
-        PEXELS_API,
-        headers={"Authorization": api_key},
+        WIKIMEDIA_API,
+        headers=HEADERS,
         params={
-            "query": query,
-            "orientation": "portrait",
-            "per_page": 30
+            "action": "query",
+            "generator": "search",
+            "gsrsearch": f"filetype:bitmap {query}",
+            "gsrnamespace": 6,
+            "gsrlimit": 50,
+            "prop": "imageinfo",
+            "iiprop": "url|extmetadata",
+            "iiurlwidth": 1600,
+            "format": "json"
         },
         timeout=60
     )
     response.raise_for_status()
 
-    photos = response.json().get("photos", [])
+    pages = response.json().get("query", {}).get("pages", {})
+    candidates = []
 
-    if not photos:
-        raise RuntimeError(f"No Pexels photos found for: {query}")
+    for page in pages.values():
+        photo_id = page.get("pageid")
 
-    available = [
-        photo for photo in photos
-        if photo.get("id") not in used_photo_ids
+        if photo_id in used_ids:
+            continue
+
+        info = page.get("imageinfo", [{}])[0]
+        metadata = info.get("extmetadata", {})
+
+        license_name = html.unescape(
+            metadata.get("LicenseShortName", {}).get("value", "")
+        ).lower()
+
+        license_url = metadata.get(
+            "LicenseUrl", {}
+        ).get("value", "")
+
+        # Accept licenses with reusable terms.
+        accepted = (
+            "cc0" in license_name
+            or "public domain" in license_name
+            or "cc by" in license_name
+        )
+
+        image_url = info.get("thumburl") or info.get("url")
+
+        if accepted and image_url:
+            candidates.append({
+                "id": photo_id,
+                "url": image_url,
+                "title": page.get("title", ""),
+                "license": license_name,
+                "license_url": license_url,
+                "artist": html.unescape(
+                    metadata.get("Artist", {}).get("value", "Unknown")
+                ),
+                "source": info.get("descriptionurl", "")
+            })
+
+    return candidates
+
+
+def generate_image(query, scene_number, used_photo_ids):
+    print(f"Searching Wikimedia: {query}")
+
+    # Try the full search, then a shorter fallback query.
+    search_queries = [
+        query,
+        " ".join(query.split()[:3])
     ]
 
-    if not available:
-        available = photos
+    candidates = []
 
-    photo = random.choice(available)
-    used_photo_ids.add(photo.get("id"))
+    for search_query in search_queries:
+        candidates = search_wikimedia(search_query, used_photo_ids)
+        if candidates:
+            break
 
-    image_url = (
-        photo.get("src", {}).get("large2x")
-        or photo.get("src", {}).get("large")
+    if not candidates:
+        raise RuntimeError(
+            f"No reusable Wikimedia photo found for: {query}"
+        )
+
+    photo = random.choice(candidates)
+    used_photo_ids.add(photo["id"])
+
+    response = requests.get(
+        photo["url"],
+        headers=HEADERS,
+        timeout=90
     )
-
-    if not image_url:
-        raise RuntimeError("Pexels did not return a usable image URL.")
-
-    image_response = requests.get(image_url, timeout=90)
-    image_response.raise_for_status()
+    response.raise_for_status()
 
     destination = SCENES_DIR / f"scene_{scene_number}.jpg"
-    destination.write_bytes(image_response.content)
+    destination.write_bytes(response.content)
 
-    with Image.open(destination) as img:
-        img.verify()
+    with Image.open(destination) as image:
+        image.verify()
 
-    with Image.open(destination) as img:
-        if img.width < 500 or img.height < 500:
-            raise RuntimeError("Downloaded photo resolution is too small.")
+    with Image.open(destination) as image:
+        if image.width < 500 or image.height < 500:
+            raise RuntimeError("Downloaded image resolution is too small.")
 
-    print(f"Scene {scene_number} photo verified.")
+    with CREDITS_FILE.open("a", encoding="utf-8") as file:
+        file.write(
+            f"Scene {scene_number}: {photo['title']}\n"
+            f"Creator: {photo['artist']}\n"
+            f"License: {photo['license']}\n"
+            f"License URL: {photo['license_url']}\n"
+            f"Source: {photo['source']}\n\n"
+        )
+
+    print(f"Scene {scene_number} photo downloaded.")
     return destination
 
-
-# =========================
-# CREATE SIX SCENES
-# =========================
 
 def generate_all_images(story):
     used_photo_ids = set()
     image_files = []
 
+    if CREDITS_FILE.exists():
+        CREDITS_FILE.unlink()
+
     for number, scene in enumerate(story["scenes"], start=1):
-        query, caption = scene
+        query = scene[0]
 
         image_path = generate_image(
             query,
             number,
             used_photo_ids
         )
-
         image_files.append(image_path)
 
     return image_files
 
 
-# =========================
-# URDU VOICE
-# =========================
+# ==========================================
+# URDU VOICE GENERATION
+# ==========================================
 
 async def generate_voice(text):
     print("Generating Urdu voice-over...")
@@ -297,20 +358,19 @@ async def generate_voice(text):
     await communicate.save(str(VOICE_FILE))
 
     if not VOICE_FILE.exists() or VOICE_FILE.stat().st_size < 1000:
-        raise RuntimeError("Urdu voice generation failed.")
+        raise RuntimeError("Voice generation failed.")
 
     print("Urdu voice-over ready.")
 
 
-# =========================
+# ==========================================
 # ENGLISH SUBTITLES
-# =========================
+# ==========================================
 
 def make_subtitles(story, total_duration):
-    scenes = story["scenes"]
-    scene_duration = total_duration / len(scenes)
+    scene_duration = total_duration / len(story["scenes"])
 
-    def timestamp(seconds):
+    def stamp(seconds):
         hours = int(seconds // 3600)
         minutes = int((seconds % 3600) // 60)
         secs = int(seconds % 60)
@@ -321,29 +381,29 @@ def make_subtitles(story, total_duration):
             f"{secs:02},{millis:03}"
         )
 
-    subtitle_lines = []
+    lines = []
 
-    for index, scene in enumerate(scenes):
+    for index, scene in enumerate(story["scenes"]):
         start = index * scene_duration
         end = min((index + 1) * scene_duration, total_duration)
 
         caption = scene[1]
 
-        subtitle_lines.append(
+        lines.append(
             f"{index + 1}\n"
-            f"{timestamp(start)} --> {timestamp(end)}\n"
+            f"{stamp(start)} --> {stamp(end)}\n"
             f"{caption}\n"
         )
 
     SUBTITLE_FILE.write_text(
-        "\n".join(subtitle_lines),
+        "\n".join(lines),
         encoding="utf-8"
     )
 
 
-# =========================
+# ==========================================
 # CREATE VIDEO CLIPS
-# =========================
+# ==========================================
 
 def create_scene_clips(image_files, total_duration):
     clip_duration = total_duration / len(image_files)
@@ -366,8 +426,7 @@ def create_scene_clips(image_files, total_duration):
         )
 
         run_command([
-            "ffmpeg",
-            "-y",
+            "ffmpeg", "-y",
             "-loop", "1",
             "-i", str(image_path),
             "-vf", video_filter,
@@ -381,14 +440,14 @@ def create_scene_clips(image_files, total_duration):
         ])
 
         clip_files.append(clip_path)
-        print(f"Created video scene {index}/{len(image_files)}.")
+        print(f"Scene video {index}/{len(image_files)} created.")
 
     return clip_files
 
 
-# =========================
-# JOIN VIDEO CLIPS
-# =========================
+# ==========================================
+# JOIN CLIPS
+# ==========================================
 
 def join_clips(clip_files):
     lines = []
@@ -405,8 +464,7 @@ def join_clips(clip_files):
     silent_video = OUTPUT_DIR / "silent_video.mp4"
 
     run_command([
-        "ffmpeg",
-        "-y",
+        "ffmpeg", "-y",
         "-f", "concat",
         "-safe", "0",
         "-i", str(CONCAT_FILE),
@@ -417,12 +475,12 @@ def join_clips(clip_files):
     return silent_video
 
 
-# =========================
+# ==========================================
 # FINAL VIDEO
-# =========================
+# ==========================================
 
 def create_final_video(silent_video):
-    print("Adding subtitles and voice-over...")
+    print("Adding subtitles and audio...")
 
     subtitle_path = str(SUBTITLE_FILE.resolve())
     subtitle_path = subtitle_path.replace("\\", "/")
@@ -441,11 +499,8 @@ def create_final_video(silent_video):
         "MarginV=150'"
     )
 
-    # Soft synthesized background tone.
-    # This is ambient audio, not a real music track or sound effects.
     run_command([
-        "ffmpeg",
-        "-y",
+        "ffmpeg", "-y",
         "-i", str(silent_video),
         "-i", str(VOICE_FILE),
         "-f", "lavfi",
@@ -471,14 +526,14 @@ def create_final_video(silent_video):
     ])
 
     if not VIDEO_FILE.exists() or VIDEO_FILE.stat().st_size < 10000:
-        raise RuntimeError("Final video was not created correctly.")
+        raise RuntimeError("Final video was not created.")
 
-    print("Final video created successfully.")
+    print("Final video created.")
 
 
-# =========================
+# ==========================================
 # YOUTUBE UPLOAD
-# =========================
+# ==========================================
 
 def upload_to_youtube(title):
     print("Preparing YouTube upload...")
@@ -493,16 +548,10 @@ def upload_to_youtube(title):
         raise RuntimeError("YOUTUBE_REFRESH_TOKEN secret is missing.")
 
     client_data = json.loads(client_json)
-
-    client_info = (
-        client_data.get("installed")
-        or client_data.get("web")
-    )
+    client_info = client_data.get("installed") or client_data.get("web")
 
     if not client_info:
-        raise RuntimeError(
-            "Your YouTube client JSON must contain installed or web details."
-        )
+        raise RuntimeError("Invalid YouTube client JSON.")
 
     credentials = Credentials(
         token=None,
@@ -527,14 +576,20 @@ def upload_to_youtube(title):
     if privacy not in ("private", "unlisted", "public"):
         privacy = "private"
 
+    description = (
+        "A cinematic nature, adventure and mystery story.\n\n"
+        "Subscribe for more videos.\n\n"
+        "#Nature #Adventure #Mystery #Shorts\n\n"
+    )
+
+    if CREDITS_FILE.exists():
+        credits = CREDITS_FILE.read_text(encoding="utf-8")
+        description += "PHOTO CREDITS AND LICENSES:\n\n" + credits
+
     body = {
         "snippet": {
             "title": title[:100],
-            "description": (
-                "A short cinematic nature and mystery story.\n\n"
-                "Subscribe for more nature, adventure and mystery videos.\n\n"
-                "#Nature #Adventure #Mystery #Shorts"
-            ),
+            "description": description[:5000],
             "tags": [
                 "nature",
                 "adventure",
@@ -570,24 +625,24 @@ def upload_to_youtube(title):
 
         if status:
             print(
-                f"YouTube upload: {int(status.progress() * 100)}%"
+                f"Upload progress: {int(status.progress() * 100)}%"
             )
 
     video_id = response.get("id")
 
     print("YouTube upload successful.")
-    print(f"Video ID: {video_id}")
-    print(f"Privacy: {privacy}")
-    print(f"Video URL: https://www.youtube.com/watch?v={video_id}")
+    print("Video ID:", video_id)
+    print("Privacy:", privacy)
+    print("Video URL:", f"https://www.youtube.com/watch?v={video_id}")
 
 
-# =========================
-# MAIN
-# =========================
+# ==========================================
+# MAIN PROGRAM
+# ==========================================
 
 def main():
     print("\n===================================")
-    print("       NATURE SHORTS AUTOMATION")
+    print("      NATURE SHORTS AUTOMATION")
     print("===================================\n")
 
     run_id = os.getenv("GITHUB_RUN_ID", "local")
@@ -599,14 +654,16 @@ def main():
 
     print("Selected story:", story["title"])
 
-    # Remove old scene files so old images cannot be reused.
+    # Clear previous generated files.
     for old_file in SCENES_DIR.glob("*"):
         if old_file.is_file():
             old_file.unlink()
 
+    for old_file in OUTPUT_DIR.glob("clip_*.mp4"):
+        old_file.unlink()
+
     image_files = generate_all_images(story)
 
-    import asyncio
     asyncio.run(generate_voice(story["narration"]))
 
     total_duration = get_duration(VOICE_FILE)
@@ -614,12 +671,12 @@ def main():
 
     make_subtitles(story, total_duration)
 
-    clip_files = create_scene_clips(
+    clips = create_scene_clips(
         image_files,
         total_duration
     )
 
-    silent_video = join_clips(clip_files)
+    silent_video = join_clips(clips)
 
     create_final_video(silent_video)
 
