@@ -2,12 +2,11 @@
 import os
 import json
 import random
+import re
+import html
 import subprocess
 import asyncio
-import html
-import re
 from pathlib import Path
-from xml.sax.saxutils import escape
 
 import requests
 from PIL import Image
@@ -40,11 +39,10 @@ HEIGHT = 1920
 FPS = 25
 
 VOICE = "ur-PK-UzmaNeural"
-
 WIKIMEDIA_API = "https://commons.wikimedia.org/w/api.php"
 
 HEADERS = {
-    "User-Agent": "NatureShortsAutomation/1.0 (personal video project)"
+    "User-Agent": "NatureShortsAutomation/1.0 (video project)"
 }
 
 
@@ -171,7 +169,7 @@ STORIES = [
 
 
 # ==========================================
-# COMMAND HELPER
+# GENERAL HELPERS
 # ==========================================
 
 def run_command(command):
@@ -199,6 +197,18 @@ def get_duration(file_path):
     return float(result.stdout.strip())
 
 
+def clean_text(value):
+    """Remove HTML tags and unsafe characters from metadata."""
+    value = html.unescape(str(value or ""))
+    value = re.sub(r"<[^>]*>", " ", value)
+    value = re.sub(r"\s+", " ", value)
+    value = "".join(
+        char for char in value
+        if char.isprintable() and char not in "\x00"
+    )
+    return value.strip()
+
+
 # ==========================================
 # WIKIMEDIA PHOTO SEARCH
 # ==========================================
@@ -220,6 +230,7 @@ def search_wikimedia(query, used_ids):
         },
         timeout=60
     )
+
     response.raise_for_status()
 
     pages = response.json().get("query", {}).get("pages", {})
@@ -234,15 +245,10 @@ def search_wikimedia(query, used_ids):
         info = page.get("imageinfo", [{}])[0]
         metadata = info.get("extmetadata", {})
 
-        license_name = html.unescape(
+        license_name = clean_text(
             metadata.get("LicenseShortName", {}).get("value", "")
         ).lower()
 
-        license_url = metadata.get(
-            "LicenseUrl", {}
-        ).get("value", "")
-
-        # Accept licenses with reusable terms.
         accepted = (
             "cc0" in license_name
             or "public domain" in license_name
@@ -255,13 +261,15 @@ def search_wikimedia(query, used_ids):
             candidates.append({
                 "id": photo_id,
                 "url": image_url,
-                "title": page.get("title", ""),
-                "license": license_name,
-                "license_url": license_url,
-                "artist": html.unescape(
+                "title": clean_text(page.get("title", "")),
+                "license": clean_text(license_name),
+                "license_url": clean_text(
+                    metadata.get("LicenseUrl", {}).get("value", "")
+                ),
+                "artist": clean_text(
                     metadata.get("Artist", {}).get("value", "Unknown")
                 ),
-                "source": info.get("descriptionurl", "")
+                "source": clean_text(info.get("descriptionurl", ""))
             })
 
     return candidates
@@ -270,15 +278,9 @@ def search_wikimedia(query, used_ids):
 def generate_image(query, scene_number, used_photo_ids):
     print(f"Searching Wikimedia: {query}")
 
-    # Try the full search, then a shorter fallback query.
-    search_queries = [
-        query,
-        " ".join(query.split()[:3])
-    ]
-
     candidates = []
 
-    for search_query in search_queries:
+    for search_query in (query, " ".join(query.split()[:3])):
         candidates = search_wikimedia(search_query, used_photo_ids)
         if candidates:
             break
@@ -329,10 +331,8 @@ def generate_all_images(story):
         CREDITS_FILE.unlink()
 
     for number, scene in enumerate(story["scenes"], start=1):
-        query = scene[0]
-
         image_path = generate_image(
-            query,
+            scene[0],
             number,
             used_photo_ids
         )
@@ -342,7 +342,7 @@ def generate_all_images(story):
 
 
 # ==========================================
-# URDU VOICE GENERATION
+# URDU VOICE
 # ==========================================
 
 async def generate_voice(text):
@@ -387,12 +387,10 @@ def make_subtitles(story, total_duration):
         start = index * scene_duration
         end = min((index + 1) * scene_duration, total_duration)
 
-        caption = scene[1]
-
         lines.append(
             f"{index + 1}\n"
             f"{stamp(start)} --> {stamp(end)}\n"
-            f"{caption}\n"
+            f"{scene[1]}\n"
         )
 
     SUBTITLE_FILE.write_text(
@@ -402,7 +400,7 @@ def make_subtitles(story, total_duration):
 
 
 # ==========================================
-# CREATE VIDEO CLIPS
+# CREATE SCENE VIDEOS
 # ==========================================
 
 def create_scene_clips(image_files, total_duration):
@@ -476,7 +474,7 @@ def join_clips(clip_files):
 
 
 # ==========================================
-# FINAL VIDEO
+# FINAL VIDEO WITH AUDIO AND SUBTITLES
 # ==========================================
 
 def create_final_video(silent_video):
@@ -528,7 +526,46 @@ def create_final_video(silent_video):
     if not VIDEO_FILE.exists() or VIDEO_FILE.stat().st_size < 10000:
         raise RuntimeError("Final video was not created.")
 
-    print("Final video created.")
+    print("Final video created successfully.")
+
+
+# ==========================================
+# CLEAN YOUTUBE DESCRIPTION
+# ==========================================
+
+def make_youtube_description():
+    description = (
+        "A cinematic nature, adventure and mystery story.\n\n"
+        "Subscribe for more nature and adventure videos.\n\n"
+        "#Nature #Adventure #Mystery #Shorts\n\n"
+        "PHOTO CREDITS AND LICENSES:\n"
+    )
+
+    if CREDITS_FILE.exists():
+        raw_credits = CREDITS_FILE.read_text(encoding="utf-8")
+
+        clean_lines = []
+
+        for line in raw_credits.splitlines():
+            line = clean_text(line)
+
+            if line:
+                clean_lines.append(line)
+
+        credits = "\n".join(clean_lines)
+
+        description += credits
+
+    # YouTube descriptions have a maximum length.
+    description = description[:4500]
+
+    # Remove control characters and invalid surrogate characters.
+    description = "".join(
+        char for char in description
+        if char in "\n\t" or ord(char) >= 32
+    )
+
+    return description
 
 
 # ==========================================
@@ -548,7 +585,11 @@ def upload_to_youtube(title):
         raise RuntimeError("YOUTUBE_REFRESH_TOKEN secret is missing.")
 
     client_data = json.loads(client_json)
-    client_info = client_data.get("installed") or client_data.get("web")
+
+    client_info = (
+        client_data.get("installed")
+        or client_data.get("web")
+    )
 
     if not client_info:
         raise RuntimeError("Invalid YouTube client JSON.")
@@ -576,20 +617,12 @@ def upload_to_youtube(title):
     if privacy not in ("private", "unlisted", "public"):
         privacy = "private"
 
-    description = (
-        "A cinematic nature, adventure and mystery story.\n\n"
-        "Subscribe for more videos.\n\n"
-        "#Nature #Adventure #Mystery #Shorts\n\n"
-    )
-
-    if CREDITS_FILE.exists():
-        credits = CREDITS_FILE.read_text(encoding="utf-8")
-        description += "PHOTO CREDITS AND LICENSES:\n\n" + credits
+    description = make_youtube_description()
 
     body = {
         "snippet": {
-            "title": title[:100],
-            "description": description[:5000],
+            "title": clean_text(title)[:100],
+            "description": description,
             "tags": [
                 "nature",
                 "adventure",
@@ -633,11 +666,14 @@ def upload_to_youtube(title):
     print("YouTube upload successful.")
     print("Video ID:", video_id)
     print("Privacy:", privacy)
-    print("Video URL:", f"https://www.youtube.com/watch?v={video_id}")
+    print(
+        "Video URL:",
+        f"https://www.youtube.com/watch?v={video_id}"
+    )
 
 
 # ==========================================
-# MAIN PROGRAM
+# MAIN
 # ==========================================
 
 def main():
@@ -654,7 +690,7 @@ def main():
 
     print("Selected story:", story["title"])
 
-    # Clear previous generated files.
+    # Clear old generated scenes and clips.
     for old_file in SCENES_DIR.glob("*"):
         if old_file.is_file():
             old_file.unlink()
