@@ -1,4 +1,3 @@
-
 import os
 import json
 import random
@@ -6,6 +5,9 @@ import re
 import html
 import subprocess
 import asyncio
+import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 
 import requests
@@ -42,7 +44,9 @@ VOICE = "ur-PK-UzmaNeural"
 WIKIMEDIA_API = "https://commons.wikimedia.org/w/api.php"
 
 HEADERS = {
-    "User-Agent": "NatureShortsAutomation/1.0 (video project)"
+    # Wikimedia asks automated clients to identify themselves.
+    "User-Agent": "NatureShortsAutomation/2.0 (GitHub Actions; contact: project owner)",
+    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
 }
 
 
@@ -213,131 +217,157 @@ def clean_text(value):
 # WIKIMEDIA PHOTO SEARCH
 # ==========================================
 
+def request_with_retry(url, *, params=None, timeout=60, stream=False, attempts=6):
+    """Retry temporary Wikimedia/network throttling with exponential backoff."""
+    last_error = None
+    for attempt in range(attempts):
+        try:
+            response = requests.get(
+                url, headers=HEADERS, params=params, timeout=timeout,
+                stream=stream
+            )
+            if response.status_code == 429 or response.status_code in (500, 502, 503, 504):
+                retry_after = response.headers.get("Retry-After", "")
+                wait = min(90, 8 * (2 ** attempt))
+                try:
+                    wait = max(wait, min(90, int(retry_after)))
+                except (TypeError, ValueError):
+                    try:
+                        retry_date = parsedate_to_datetime(retry_after)
+                        wait = max(wait, min(90, (retry_date - datetime.now(timezone.utc)).total_seconds()))
+                    except Exception:
+                        pass
+                response.close()
+                if attempt == attempts - 1:
+                    raise requests.HTTPError(f"HTTP {response.status_code} after {attempts} attempts")
+                print(f"Temporary server limit ({response.status_code}). Waiting {int(wait)} seconds...")
+                time.sleep(wait)
+                continue
+            response.raise_for_status()
+            return response
+        except (requests.Timeout, requests.ConnectionError) as exc:
+            last_error = exc
+            if attempt == attempts - 1:
+                break
+            wait = min(90, 5 * (2 ** attempt))
+            print(f"Network issue. Retrying in {wait} seconds...")
+            time.sleep(wait)
+    if last_error:
+        raise last_error
+    raise RuntimeError(f"Could not fetch {url}")
+
+
 def search_wikimedia(query, used_ids):
-    response = requests.get(
-        WIKIMEDIA_API,
-        headers=HEADERS,
-        params={
-            "action": "query",
-            "generator": "search",
-            "gsrsearch": f"filetype:bitmap {query}",
-            "gsrnamespace": 6,
-            "gsrlimit": 50,
-            "prop": "imageinfo",
-            "iiprop": "url|extmetadata",
-            "iiurlwidth": 1600,
-            "format": "json"
-        },
-        timeout=60
-    )
-
-    response.raise_for_status()
-
+    params = {
+        "action": "query", "generator": "search",
+        "gsrsearch": f"filetype:bitmap {query}",
+        "gsrnamespace": 6, "gsrlimit": 50,
+        "prop": "imageinfo", "iiprop": "url|extmetadata",
+        "iiurlwidth": 1600, "format": "json"
+    }
+    response = request_with_retry(WIKIMEDIA_API, params=params, timeout=60)
     pages = response.json().get("query", {}).get("pages", {})
     candidates = []
-
     for page in pages.values():
         photo_id = page.get("pageid")
-
         if photo_id in used_ids:
             continue
-
         info = page.get("imageinfo", [{}])[0]
         metadata = info.get("extmetadata", {})
-
-        license_name = clean_text(
-            metadata.get("LicenseShortName", {}).get("value", "")
-        ).lower()
-
-        accepted = (
-            "cc0" in license_name
-            or "public domain" in license_name
-            or "cc by" in license_name
-        )
-
+        license_name = clean_text(metadata.get("LicenseShortName", {}).get("value", "")).lower()
+        accepted = ("cc0" in license_name or "public domain" in license_name or
+                    license_name.startswith("cc by") or "cc by " in license_name)
         image_url = info.get("thumburl") or info.get("url")
-
         if accepted and image_url:
             candidates.append({
-                "id": photo_id,
-                "url": image_url,
-                "title": clean_text(page.get("title", "")),
+                "id": photo_id, "url": image_url,
+                "title": clean_text(page.get("title", "Untitled image")),
                 "license": clean_text(license_name),
-                "license_url": clean_text(
-                    metadata.get("LicenseUrl", {}).get("value", "")
-                ),
-                "artist": clean_text(
-                    metadata.get("Artist", {}).get("value", "Unknown")
-                ),
+                "license_url": clean_text(metadata.get("LicenseUrl", {}).get("value", "")),
+                "artist": clean_text(metadata.get("Artist", {}).get("value", "Unknown")),
                 "source": clean_text(info.get("descriptionurl", ""))
             })
-
+    random.shuffle(candidates)
     return candidates
+
+
+def make_fallback_image(destination, scene_number):
+    """Create a valid cinematic gradient image if all photo sources fail."""
+    from PIL import ImageDraw
+    image = Image.new("RGB", (1080, 1920))
+    pixels = image.load()
+    for y in range(1920):
+        t = y / 1919
+        color = (int(5 + 12*t), int(28 + 35*t), int(48 + 55*t))
+        for x in range(1080):
+            pixels[x, y] = color
+    draw = ImageDraw.Draw(image)
+    draw.ellipse((180, 450, 900, 1170), outline=(100, 160, 190), width=5)
+    draw.text((70, 1660), f"NATURE • SCENE {scene_number}", fill=(235, 245, 250))
+    image.save(destination, "JPEG", quality=90)
+    with CREDITS_FILE.open("a", encoding="utf-8") as f:
+        f.write(f"Scene {scene_number}: Original generated gradient background (no external photo)\n\n")
+    print(f"Scene {scene_number}: using built-in fallback background.")
+    return destination
 
 
 def generate_image(query, scene_number, used_photo_ids):
     print(f"Searching Wikimedia: {query}")
-
-    candidates = []
-
-    for search_query in (query, " ".join(query.split()[:3])):
-        candidates = search_wikimedia(search_query, used_photo_ids)
-        if candidates:
-            break
-
-    if not candidates:
-        raise RuntimeError(
-            f"No reusable Wikimedia photo found for: {query}"
-        )
-
-    photo = random.choice(candidates)
-    used_photo_ids.add(photo["id"])
-
-    response = requests.get(
-        photo["url"],
-        headers=HEADERS,
-        timeout=90
-    )
-    response.raise_for_status()
-
     destination = SCENES_DIR / f"scene_{scene_number}.jpg"
-    destination.write_bytes(response.content)
-
-    with Image.open(destination) as image:
-        image.verify()
-
-    with Image.open(destination) as image:
-        if image.width < 500 or image.height < 500:
-            raise RuntimeError("Downloaded image resolution is too small.")
-
-    with CREDITS_FILE.open("a", encoding="utf-8") as file:
-        file.write(
-            f"Scene {scene_number}: {photo['title']}\n"
-            f"Creator: {photo['artist']}\n"
-            f"License: {photo['license']}\n"
-            f"License URL: {photo['license_url']}\n"
-            f"Source: {photo['source']}\n\n"
-        )
-
-    print(f"Scene {scene_number} photo downloaded.")
-    return destination
+    queries = [query, " ".join(query.split()[:3]), "nature landscape"]
+    tried = set()
+    for search_query in queries:
+        try:
+            candidates = search_wikimedia(search_query, used_photo_ids)
+        except Exception as exc:
+            print(f"Wikimedia search issue for '{search_query}': {exc}")
+            continue
+        for photo in candidates:
+            if photo["id"] in tried:
+                continue
+            tried.add(photo["id"])
+            try:
+                print(f"Trying photo: {photo['title']}")
+                response = request_with_retry(photo["url"], timeout=90, attempts=6)
+                content_type = response.headers.get("Content-Type", "").lower()
+                if content_type and not content_type.startswith("image/"):
+                    raise ValueError(f"Unexpected content type: {content_type}")
+                temp_path = destination.with_suffix(".download")
+                temp_path.write_bytes(response.content)
+                with Image.open(temp_path) as im:
+                    im.verify()
+                with Image.open(temp_path) as im:
+                    if im.width < 500 or im.height < 500:
+                        raise ValueError("Image resolution below 500 pixels")
+                    im.convert("RGB").save(destination, "JPEG", quality=94)
+                temp_path.unlink(missing_ok=True)
+                used_photo_ids.add(photo["id"])
+                with CREDITS_FILE.open("a", encoding="utf-8") as f:
+                    f.write(
+                        f"Scene {scene_number}: {photo['title']}\n"
+                        f"Creator: {photo['artist']}\n"
+                        f"License: {photo['license']}\n"
+                        f"License URL: {photo['license_url']}\n"
+                        f"Source: {photo['source']}\n\n"
+                    )
+                print(f"Scene {scene_number} photo downloaded.")
+                return destination
+            except Exception as exc:
+                print(f"Photo failed; trying another candidate: {exc}")
+                destination.with_suffix(".download").unlink(missing_ok=True)
+                continue
+    return make_fallback_image(destination, scene_number)
 
 
 def generate_all_images(story):
     used_photo_ids = set()
     image_files = []
-
     if CREDITS_FILE.exists():
         CREDITS_FILE.unlink()
-
     for number, scene in enumerate(story["scenes"], start=1):
-        image_path = generate_image(
-            scene[0],
-            number,
-            used_photo_ids
-        )
-        image_files.append(image_path)
-
+        image_files.append(generate_image(scene[0], number, used_photo_ids))
+        # Small pause between scenes reduces Wikimedia request pressure.
+        time.sleep(2)
     return image_files
 
 
@@ -533,39 +563,25 @@ def create_final_video(silent_video):
 # CLEAN YOUTUBE DESCRIPTION
 # ==========================================
 
-def make_youtube_description():
+def make_youtube_description(story):
+    title = clean_text(story.get("title", "Nature Adventure"))
+    hashtags = "#Shorts #Nature #Adventure #Mystery #Travel #Wildlife #Explore #UrduStories"
     description = (
-        "A cinematic nature, adventure and mystery story.\n\n"
-        "Subscribe for more nature and adventure videos.\n\n"
-        "#Nature #Adventure #Mystery #Shorts\n\n"
-        "PHOTO CREDITS AND LICENSES:\n"
+        f"{title} | A cinematic Urdu nature and adventure short.\n\n"
+        "Discover a world of nature, hidden places, fascinating mysteries and unforgettable adventures. "
+        "Watch till the end and share what you think happened!\n\n"
+        "🎬 Watch more nature and adventure stories.\n"
+        "👍 Like • 💬 Comment • 🔔 Subscribe for more Shorts.\n\n"
+        f"{hashtags}\n\n"
+        "PHOTO CREDITS AND LICENSE INFORMATION\n"
+        "The following source and license details are provided for Wikimedia Commons images used in this video:\n"
     )
-
     if CREDITS_FILE.exists():
-        raw_credits = CREDITS_FILE.read_text(encoding="utf-8")
-
-        clean_lines = []
-
-        for line in raw_credits.splitlines():
-            line = clean_text(line)
-
-            if line:
-                clean_lines.append(line)
-
-        credits = "\n".join(clean_lines)
-
-        description += credits
-
-    # YouTube descriptions have a maximum length.
+        lines = [clean_text(line) for line in CREDITS_FILE.read_text(encoding="utf-8").splitlines()]
+        description += "\n".join(line for line in lines if line)
+    # YouTube description maximum is 5,000 characters; leave room for safe encoding.
     description = description[:4500]
-
-    # Remove control characters and invalid surrogate characters.
-    description = "".join(
-        char for char in description
-        if char in "\n\t" or ord(char) >= 32
-    )
-
-    return description
+    return "".join(ch for ch in description if ch in "\n\t" or (ord(ch) >= 32 and not 0xD800 <= ord(ch) <= 0xDFFF))
 
 
 # ==========================================
@@ -617,19 +633,16 @@ def upload_to_youtube(title):
     if privacy not in ("private", "unlisted", "public"):
         privacy = "private"
 
-    description = make_youtube_description()
+    description = make_youtube_description(STORY_IN_USE)
 
     body = {
         "snippet": {
             "title": clean_text(title)[:100],
             "description": description,
             "tags": [
-                "nature",
-                "adventure",
-                "mystery",
-                "shorts",
-                "travel",
-                "cinematic"
+                "nature", "adventure", "mystery", "shorts", "youtube shorts",
+                "travel", "cinematic", "urdu story", "nature facts",
+                "exploration", "wildlife", "beautiful places", "Pakistan travel"
             ],
             "categoryId": "22"
         },
@@ -653,8 +666,18 @@ def upload_to_youtube(title):
 
     response = None
 
+    upload_attempts = 0
     while response is None:
-        status, response = request.next_chunk()
+        try:
+            status, response = request.next_chunk()
+            upload_attempts = 0
+        except Exception as exc:
+            upload_attempts += 1
+            if upload_attempts >= 5:
+                raise
+            wait = min(60, 5 * (2 ** (upload_attempts - 1)))
+            print(f"Upload connection issue: {exc}. Retrying in {wait}s...")
+            time.sleep(wait)
 
         if status:
             print(
@@ -676,6 +699,9 @@ def upload_to_youtube(title):
 # MAIN
 # ==========================================
 
+STORY_IN_USE = {}
+
+
 def main():
     print("\n===================================")
     print("      NATURE SHORTS AUTOMATION")
@@ -688,6 +714,8 @@ def main():
 
     story = random.choice(STORIES)
 
+    global STORY_IN_USE
+    STORY_IN_USE = story
     print("Selected story:", story["title"])
 
     # Clear old generated scenes and clips.
