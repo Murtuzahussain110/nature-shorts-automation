@@ -1,3 +1,4 @@
+
 name: Daily Nature Shorts
 
 on:
@@ -31,7 +32,6 @@ jobs:
 
       - name: Generate and upload Short
         env:
-          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY_STATUS: private
