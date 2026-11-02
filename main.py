@@ -1,40 +1,44 @@
+
 import os
-import re
 import json
 import random
 import hashlib
-import subprocess
 import asyncio
+import subprocess
 import requests
 from pathlib import Path
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from urllib.parse import quote
 
+from PIL import Image
 import edge_tts
+
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 
 # ==========================================
-# SETTINGS
+# CONFIGURATION
 # ==========================================
 
 OUTPUT = Path("output")
 SCENES = OUTPUT / "scenes"
+
 OUTPUT.mkdir(exist_ok=True)
 SCENES.mkdir(exist_ok=True)
 
-VIDEO_FILE = OUTPUT / "nature_short.mp4"
 VOICE_FILE = OUTPUT / "voice.mp3"
 MUSIC_FILE = OUTPUT / "music.mp3"
 SUBTITLE_FILE = OUTPUT / "subtitles.srt"
-
-VOICE = "ur-PK-UzmaNeural"
+VIDEO_FILE = OUTPUT / "nature_short.mp4"
 
 WIDTH = 1080
 HEIGHT = 1920
+FPS = 25
 
-IMAGE_MODEL = "https://image.pollinations.ai/prompt/"
+VOICE = "ur-PK-UzmaNeural"
+
+IMAGE_ENDPOINT = "https://image.pollinations.ai/prompt/"
 
 # ==========================================
 # STORIES
@@ -43,12 +47,11 @@ IMAGE_MODEL = "https://image.pollinations.ai/prompt/"
 TOPICS = [
     {
         "title": "The Door Hidden in the Forest",
-        "category": "Mystery",
         "english": [
             "Deep inside a forgotten forest, something strange was discovered.",
             "A mysterious wooden door stood between two ancient trees.",
             "Nobody knew who built it or what was hidden behind it.",
-            "One explorer slowly reached for its rusty handle.",
+            "An explorer slowly reached for its rusty handle.",
             "A cold wind suddenly came from the other side.",
             "And then, the door began opening by itself."
         ],
@@ -61,17 +64,16 @@ TOPICS = [
             "اور پھر دروازہ خود بخود کھلنے لگا۔"
         ],
         "prompts": [
-            "cinematic mysterious deep dark forest, ancient giant trees, thick fog, photorealistic",
-            "old mysterious wooden door between two enormous forest trees, cinematic horror atmosphere",
-            "close view of ancient wooden door covered in moss, mysterious symbols, realistic photography",
-            "lonely explorer wearing dark outdoor jacket approaching an old forest door, cinematic wide shot",
-            "cold mist flowing from a half open mysterious door in a dark forest, dramatic lighting",
-            "ancient wooden door opening by itself in a foggy forest, mysterious cinematic scene"
+            "A vast mysterious ancient forest covered in thick fog, enormous trees, cinematic photorealistic photography",
+            "An old wooden door standing between two giant ancient trees, moss and mysterious atmosphere, realistic film still",
+            "Close up of a mysterious old wooden door covered in moss and strange carvings, cinematic lighting",
+            "A lone explorer in a dark outdoor jacket approaching an ancient forest door, photorealistic wide shot",
+            "Cold mist flowing from a half open wooden door in a dark forest, dramatic cinematic photography",
+            "An ancient wooden door opening by itself in a foggy forest, mysterious cinematic scene"
         ]
     },
     {
         "title": "What Happens Inside a Black Hole?",
-        "category": "Science",
         "english": [
             "Somewhere in space, gravity becomes unbelievably powerful.",
             "Scientists call this mysterious object a black hole.",
@@ -89,17 +91,16 @@ TOPICS = [
             "اور اندر کیا ہوتا ہے، اس کی حقیقت ابھی تک معلوم نہیں۔"
         ],
         "prompts": [
-            "giant black hole in deep space, glowing accretion disk, realistic astrophotography",
-            "scientific visualization of black hole surrounded by stars, cinematic space",
-            "powerful black hole bending light and stars, dramatic realistic space scene",
-            "spaceship approaching event horizon of enormous black hole, cinematic science fiction",
-            "mysterious glowing center of black hole, scientific visualization, deep space",
-            "black hole surrounded by cosmic dust and distant galaxies, breathtaking realistic scene"
+            "A giant black hole in deep space with a glowing accretion disk, photorealistic scientific visualization",
+            "A black hole surrounded by distant stars and galaxies, breathtaking cinematic space photography",
+            "A powerful black hole bending light from nearby stars, realistic astrophysics visualization",
+            "A small research spacecraft approaching the event horizon of a giant black hole, cinematic",
+            "Mysterious glowing gravitational center of a black hole, detailed scientific space visualization",
+            "A black hole surrounded by cosmic dust and distant galaxies, ultra detailed cinematic scene"
         ]
     },
     {
         "title": "Lost in the World's Wildest Jungle",
-        "category": "Adventure",
         "english": [
             "A traveler entered a jungle that few people had ever explored.",
             "The trees were so tall that sunlight barely reached the ground.",
@@ -117,17 +118,16 @@ TOPICS = [
             "لیکن ان کھنڈرات کے اندر اب بھی کوئی چیز حرکت کر رہی تھی۔"
         ],
         "prompts": [
-            "vast unexplored tropical jungle, towering trees, cinematic adventure photography",
-            "sunlight rays barely entering dense rainforest, mysterious atmosphere",
-            "thick jungle trail with strange animal eyes in distant shadows, cinematic",
-            "abandoned narrow path through dense tropical forest, realistic adventure scene",
-            "ancient stone ruins covered in giant tree roots and moss, cinematic discovery",
-            "dark entrance of ancient jungle ruins with mysterious movement inside, suspenseful"
+            "A vast unexplored tropical jungle with towering trees and thick green vegetation, photorealistic",
+            "Sunlight rays barely entering a dense rainforest, mysterious cinematic atmosphere",
+            "A narrow jungle trail with mysterious animal eyes visible in distant shadows, realistic",
+            "An abandoned path through a dense tropical forest, cinematic adventure photography",
+            "Ancient stone ruins covered in giant tree roots and green moss, realistic discovery scene",
+            "A mysterious dark entrance inside ancient jungle ruins, suspenseful cinematic photography"
         ]
     },
     {
         "title": "The Dog That Waited Every Day",
-        "category": "Emotional",
         "english": [
             "Every morning, a lonely dog sat outside the same railway station.",
             "He was waiting for someone who never came back.",
@@ -145,17 +145,16 @@ TOPICS = [
             "اس تصویر نے اس کے انتظار کی دردناک وجہ بتا دی۔"
         ],
         "prompts": [
-            "lonely golden brown dog sitting outside old railway station, emotional cinematic photography",
-            "loyal dog looking toward railway platform, soft morning light, realistic",
-            "people walking past lonely dog at railway station, emotional storytelling scene",
-            "same lonely dog waiting on station platform during changing seasons, cinematic",
-            "old photograph lying beside a loyal dog on railway station floor, close up",
-            "emotional cinematic railway station scene, lonely dog beside old photograph, warm light"
+            "A lonely golden brown dog sitting outside an old railway station, emotional cinematic photography",
+            "A loyal golden brown dog looking toward an empty railway platform, soft morning light",
+            "People walking past a lonely golden brown dog at a railway station, emotional realistic scene",
+            "The same golden brown dog waiting outside a railway station during rainy weather, cinematic",
+            "An old photograph lying beside a golden brown dog on a railway station floor, close up",
+            "An emotional golden brown dog beside an old photograph at a railway station, warm cinematic light"
         ]
     },
     {
         "title": "The Amazing Intelligence of Octopuses",
-        "category": "Science",
         "english": [
             "Deep beneath the ocean lives an incredibly intelligent animal.",
             "The octopus has three hearts and blue blood.",
@@ -173,17 +172,16 @@ TOPICS = [
             "سائنس دان اب بھی ان کی ذہانت کو سمجھنے کی کوشش کر رہے ہیں۔"
         ],
         "prompts": [
-            "realistic giant octopus swimming in deep blue ocean, underwater cinematic photography",
-            "octopus close up showing detailed eyes and tentacles, underwater documentary",
-            "octopus opening a glass container underwater, realistic nature documentary",
-            "octopus using a shell as a tool on ocean floor, photorealistic",
-            "octopus changing colors and blending into coral reef, underwater macro photography",
-            "beautiful intelligent octopus in mysterious deep ocean, cinematic documentary"
+            "A realistic octopus swimming in deep blue ocean water, underwater wildlife documentary",
+            "Close up of a beautiful octopus with detailed eyes and tentacles, photorealistic",
+            "An octopus opening a glass container underwater, realistic nature documentary photography",
+            "An octopus using a shell as a tool on the ocean floor, photorealistic underwater scene",
+            "An octopus blending into a colorful coral reef, underwater macro photography",
+            "A beautiful intelligent octopus in the mysterious deep ocean, cinematic documentary"
         ]
     },
     {
         "title": "The Mountain Nobody Could Climb",
-        "category": "Adventure",
         "english": [
             "Far beyond the clouds stood a mountain nobody had conquered.",
             "Its cliffs were steep and its weather changed without warning.",
@@ -201,81 +199,83 @@ TOPICS = [
             "لیکن بادلوں کے اوپر کا منظر اس کے تصور سے بھی زیادہ خوبصورت تھا۔"
         ],
         "prompts": [
-            "enormous remote snowy mountain peak above clouds, cinematic adventure photography",
-            "steep dangerous icy mountain cliffs during storm, realistic landscape",
-            "abandoned mountaineering equipment on snowy mountain trail, dramatic scene",
-            "lone climber in red jacket climbing steep snowy mountain, cinematic wide shot",
-            "mountaineer reaching high snowy ridge above clouds, realistic photography",
-            "breathtaking sunrise over Himalayan mountain peaks above clouds, cinematic"
+            "A gigantic remote snowy mountain peak rising above clouds, photorealistic adventure photography",
+            "Steep dangerous icy mountain cliffs during a snowstorm, cinematic landscape",
+            "An abandoned mountaineering camp on a snowy mountain trail, realistic scene",
+            "A lone climber wearing a red jacket climbing a steep snowy mountain, cinematic wide shot",
+            "A mountaineer reaching a high snowy ridge above the clouds, photorealistic",
+            "Breathtaking sunrise over Himalayan mountain peaks above clouds, cinematic landscape"
         ]
     }
 ]
 
 
 # ==========================================
-# UTILITIES
+# COMMAND HELPER
 # ==========================================
 
-def run_command(command):
+def run(command):
     result = subprocess.run(
         command,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True
     )
+
     if result.returncode != 0:
-        raise RuntimeError(result.stderr[-3000:])
+        raise RuntimeError(result.stderr[-4000:])
+
     return result
 
 
-def get_font(size):
-    candidates = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-    ]
-    for candidate in candidates:
-        if os.path.exists(candidate):
-            return ImageFont.truetype(candidate, size)
-    return ImageFont.load_default()
+def clean_output():
+    for path in SCENES.glob("*"):
+        if path.is_file():
+            path.unlink()
 
-
-def clean_old_scenes():
-    for file in SCENES.glob("*"):
-        if file.is_file():
-            file.unlink()
+    for path in [
+        VOICE_FILE,
+        MUSIC_FILE,
+        SUBTITLE_FILE,
+        VIDEO_FILE,
+        OUTPUT / "joined.mp4",
+        OUTPUT / "concat.txt"
+    ]:
+        if path.exists():
+            path.unlink()
 
 
 # ==========================================
-# STORY SELECTION
+# UNIQUE STORY SELECTION
 # ==========================================
 
-def select_story():
-    run_id = os.getenv("GITHUB_RUN_ID", "")
-    attempt = os.getenv("GITHUB_RUN_ATTEMPT", "")
+def choose_story():
+    run_id = os.getenv("GITHUB_RUN_ID")
+    attempt = os.getenv("GITHUB_RUN_ATTEMPT", "1")
 
     if run_id:
-        seed_text = run_id + attempt
-        seed = int(hashlib.sha256(seed_text.encode()).hexdigest(), 16)
-        rng = random.Random(seed)
-        return rng.choice(TOPICS)
+        value = f"{run_id}-{attempt}"
+        seed = int(hashlib.sha256(value.encode()).hexdigest(), 16)
+        return random.Random(seed).choice(TOPICS)
 
     return random.choice(TOPICS)
 
 
 # ==========================================
-# AI IMAGE GENERATION
+# IMAGE GENERATION
 # ==========================================
 
-def make_ai_image(prompt, index):
+def generate_image(prompt, scene_number):
     seed = random.randint(100000, 999999999)
 
     full_prompt = (
         prompt
-        + ", vertical 9:16 composition, highly detailed, "
-        "photorealistic cinematic film still, no text, no watermark"
+        + ", vertical portrait composition, 9:16, "
+        "professional cinematic photography, highly detailed, "
+        "realistic lighting, no text, no watermark"
     )
 
-    url = IMAGE_MODEL + requests.utils.quote(full_prompt)
+    url = IMAGE_ENDPOINT + quote(full_prompt, safe="")
 
     params = {
         "width": WIDTH,
@@ -284,94 +284,103 @@ def make_ai_image(prompt, index):
         "nologo": "true"
     }
 
-    try:
-        response = requests.get(
-            url,
-            params=params,
-            timeout=120,
-            headers={"User-Agent": "NatureShortsBot/1.0"}
-        )
+    destination = SCENES / f"scene_{scene_number}.jpg"
 
-        response.raise_for_status()
+    last_error = None
 
-        image_path = SCENES / f"scene_{index}.jpg"
-        image_path.write_bytes(response.content)
+    for attempt in range(1, 4):
+        try:
+            print(
+                f"Generating scene {scene_number}/6 "
+                f"(attempt {attempt}/3)..."
+            )
 
-        with Image.open(image_path) as img:
-            img.verify()
+            response = requests.get(
+                url,
+                params=params,
+                timeout=180,
+                headers={"User-Agent": "NatureShortsAutomation/1.0"}
+            )
 
-        return image_path
+            response.raise_for_status()
 
-    except Exception as error:
-        print(f"Image generation failed for scene {index}: {error}")
-        return make_fallback_image(index, prompt)
+            content_type = response.headers.get(
+                "Content-Type", ""
+            ).lower()
 
+            if "image" not in content_type:
+                raise RuntimeError(
+                    f"Server did not return an image: {content_type}"
+                )
 
-def make_fallback_image(index, prompt):
-    image = Image.new(
-        "RGB",
-        (WIDTH, HEIGHT),
-        (10 + index * 3, 20 + index * 4, 35 + index * 5)
+            if len(response.content) < 10000:
+                raise RuntimeError("Returned image is too small.")
+
+            destination.write_bytes(response.content)
+
+            with Image.open(destination) as image:
+                image.verify()
+
+            with Image.open(destination) as image:
+                if image.width < 500 or image.height < 500:
+                    raise RuntimeError("Image dimensions are too small.")
+
+            print(f"Scene {scene_number} verified.")
+            return destination
+
+        except Exception as error:
+            last_error = error
+            print(f"Scene {scene_number} failed: {error}")
+
+            if destination.exists():
+                destination.unlink()
+
+    raise RuntimeError(
+        f"STOP: Scene {scene_number} could not be generated. "
+        f"No video will be uploaded. Last error: {last_error}"
     )
 
-    draw = ImageDraw.Draw(image)
 
-    for y in range(HEIGHT):
-        shade = int(20 + (y / HEIGHT) * 45)
-        draw.line(
-            (0, y, WIDTH, y),
-            fill=(5, shade, min(90, shade + 25))
-        )
-
-    title = f"SCENE {index}"
-    font = get_font(65)
-
-    draw.text(
-        (WIDTH // 2, HEIGHT // 2),
-        title,
-        font=font,
-        fill=(255, 255, 255),
-        anchor="mm"
-    )
-
-    image = image.filter(ImageFilter.GaussianBlur(1))
-
-    path = SCENES / f"scene_{index}.jpg"
-    image.save(path, quality=90)
-
-    return path
-
-
-def get_scene_images(story):
+def generate_all_images(story):
     images = []
 
-    for index, prompt in enumerate(story["prompts"], start=1):
-        print(f"Generating scene {index}/6...")
-        images.append(make_ai_image(prompt, index))
+    for number, prompt in enumerate(story["prompts"], start=1):
+        image_path = generate_image(prompt, number)
+        images.append(image_path)
 
+    if len(images) != 6:
+        raise RuntimeError("Not all six images were generated.")
+
+    for image in images:
+        if not image.exists() or image.stat().st_size < 10000:
+            raise RuntimeError("A scene image is missing or invalid.")
+
+    print("All six scene images successfully verified.")
     return images
 
 
 # ==========================================
-# URDU VOICE
+# URDU NARRATION
 # ==========================================
 
-async def generate_voice(text):
-    communicate = edge_tts.Communicate(
+async def make_voice(text):
+    speech = edge_tts.Communicate(
         text=text,
         voice=VOICE,
-        rate="+15%",
+        rate="+12%",
         volume="+0%"
     )
-    await communicate.save(str(VOICE_FILE))
+    await speech.save(str(VOICE_FILE))
 
 
 def create_voice(story):
     narration = " ".join(story["urdu"])
 
-    print("Generating Urdu voice-over...")
+    print("Creating Urdu voice-over...")
+    asyncio.run(make_voice(narration))
 
-    asyncio.run(generate_voice(narration))
+    if not VOICE_FILE.exists() or VOICE_FILE.stat().st_size < 1000:
+        raise RuntimeError("Urdu voice-over was not created.")
 
     return narration
 
@@ -380,22 +389,26 @@ def create_voice(story):
 # SUBTITLES
 # ==========================================
 
-def seconds_to_srt(seconds):
-    milliseconds = int((seconds % 1) * 1000)
-    total = int(seconds)
+def srt_timestamp(seconds):
+    milliseconds = int(round(seconds * 1000))
 
-    hours = total // 3600
-    minutes = (total % 3600) // 60
-    secs = total % 60
+    hours = milliseconds // 3600000
+    milliseconds %= 3600000
+
+    minutes = milliseconds // 60000
+    milliseconds %= 60000
+
+    seconds_part = milliseconds // 1000
+    milliseconds %= 1000
 
     return (
-        f"{hours:02}:{minutes:02}:{secs:02},"
-        f"{milliseconds:03}"
+        f"{hours:02}:{minutes:02}:"
+        f"{seconds_part:02},{milliseconds:03}"
     )
 
 
-def get_audio_duration(path):
-    result = run_command([
+def audio_duration(path):
+    result = run([
         "ffprobe",
         "-v", "error",
         "-show_entries", "format=duration",
@@ -406,18 +419,18 @@ def get_audio_duration(path):
     return float(result.stdout.strip())
 
 
-def create_subtitles(story, total_duration):
-    segment_duration = total_duration / len(story["english"])
+def create_subtitles(story, duration):
+    interval = duration / 6
 
     with open(SUBTITLE_FILE, "w", encoding="utf-8") as file:
         for index, sentence in enumerate(story["english"]):
-            start = index * segment_duration
-            end = (index + 1) * segment_duration
+            start = index * interval
+            end = (index + 1) * interval
 
             file.write(
                 f"{index + 1}\n"
-                f"{seconds_to_srt(start)} --> "
-                f"{seconds_to_srt(end)}\n"
+                f"{srt_timestamp(start)} --> "
+                f"{srt_timestamp(end)}\n"
                 f"{sentence}\n\n"
             )
 
@@ -427,13 +440,13 @@ def create_subtitles(story, total_duration):
 # ==========================================
 
 def create_music(duration):
-    print("Creating ambient background music...")
+    print("Creating background music...")
 
-    run_command([
+    run([
         "ffmpeg", "-y",
         "-f", "lavfi",
-        "-i", "sine=frequency=110:duration=" + str(duration),
-        "-af", "volume=0.10,lowpass=f=400,afade=t=in:st=0:d=2",
+        "-i", f"sine=frequency=110:duration={duration}",
+        "-af", "volume=0.08,lowpass=f=500,afade=t=in:st=0:d=2",
         "-c:a", "libmp3lame",
         "-q:a", "6",
         str(MUSIC_FILE)
@@ -441,37 +454,40 @@ def create_music(duration):
 
 
 # ==========================================
-# VIDEO CREATION
+# CREATE SIX VIDEO SCENES
 # ==========================================
 
 def create_video(images, duration):
-    print("Creating six-scene video...")
+    print("Rendering six separate scenes...")
 
-    scene_duration = duration / len(images)
+    scene_duration = duration / 6
     clips = []
 
-    for index, image in enumerate(images):
-        clip = SCENES / f"clip_{index + 1}.mp4"
+    for index, image in enumerate(images, start=1):
+        if not image.exists():
+            raise RuntimeError(f"Scene image missing: {image}")
 
-        frames = max(1, int(scene_duration * 25))
+        clip = SCENES / f"clip_{index}.mp4"
 
-        zoom_filter = (
-            f"scale=1200:2134,"
-            f"crop=1080:1920,"
+        frames = max(1, int(scene_duration * FPS))
+
+        video_filter = (
+            "scale=1200:2134,"
+            "crop=1080:1920,"
             f"zoompan=z='min(zoom+0.0005,1.08)':"
-            f"x='iw/2-(iw/zoom/2)':"
-            f"y='ih/2-(ih/zoom/2)':"
-            f"d={frames}:s=1080x1920:fps=25,"
-            f"setsar=1"
+            "x='iw/2-(iw/zoom/2)':"
+            "y='ih/2-(ih/zoom/2)':"
+            f"d={frames}:s=1080x1920:fps={FPS},"
+            "setsar=1"
         )
 
-        run_command([
+        run([
             "ffmpeg", "-y",
             "-loop", "1",
             "-i", str(image),
-            "-vf", zoom_filter,
+            "-vf", video_filter,
             "-t", str(scene_duration),
-            "-r", "25",
+            "-r", str(FPS),
             "-an",
             "-c:v", "libx264",
             "-preset", "ultrafast",
@@ -479,18 +495,22 @@ def create_video(images, duration):
             str(clip)
         ])
 
+        if not clip.exists() or clip.stat().st_size < 10000:
+            raise RuntimeError(f"Video scene {index} failed.")
+
         clips.append(clip)
+
+        print(f"Scene {index}/6 rendered.")
 
     concat_file = OUTPUT / "concat.txt"
 
     with open(concat_file, "w", encoding="utf-8") as file:
         for clip in clips:
-            safe_path = str(clip.resolve()).replace("'", "'\\''")
-            file.write(f"file '{safe_path}'\n")
+            file.write(f"file '{clip.resolve()}'\n")
 
     joined = OUTPUT / "joined.mp4"
 
-    run_command([
+    run([
         "ffmpeg", "-y",
         "-f", "concat",
         "-safe", "0",
@@ -499,13 +519,11 @@ def create_video(images, duration):
         str(joined)
     ])
 
-    print("Adding English subtitles and Urdu narration...")
-
     subtitle_path = str(SUBTITLE_FILE.resolve())
     subtitle_path = subtitle_path.replace("\\", "/")
     subtitle_path = subtitle_path.replace(":", "\\:")
 
-    filter_text = (
+    subtitle_filter = (
         f"subtitles='{subtitle_path}':"
         "force_style='FontName=DejaVu Sans,"
         "FontSize=17,PrimaryColour=&H00FFFFFF,"
@@ -513,14 +531,16 @@ def create_video(images, duration):
         "Shadow=1,Alignment=2,MarginV=170'"
     )
 
-    run_command([
+    print("Adding subtitles, narration and music...")
+
+    run([
         "ffmpeg", "-y",
         "-i", str(joined),
         "-i", str(VOICE_FILE),
         "-i", str(MUSIC_FILE),
         "-filter_complex",
         (
-            f"[0:v]{filter_text}[v];"
+            f"[0:v]{subtitle_filter}[v];"
             "[1:a]volume=1.0[voice];"
             "[2:a]volume=0.12[music];"
             "[voice][music]amix=inputs=2:duration=first[a]"
@@ -529,6 +549,7 @@ def create_video(images, duration):
         "-map", "[a]",
         "-c:v", "libx264",
         "-preset", "ultrafast",
+        "-pix_fmt", "yuv420p",
         "-c:a", "aac",
         "-b:a", "128k",
         "-shortest",
@@ -536,26 +557,51 @@ def create_video(images, duration):
         str(VIDEO_FILE)
     ])
 
+    if not VIDEO_FILE.exists() or VIDEO_FILE.stat().st_size < 50000:
+        raise RuntimeError("Final video failed validation.")
+
+    print("Final video created successfully.")
+
+
+# ==========================================
+# FINAL VIDEO VALIDATION
+# ==========================================
+
+def validate_video():
+    result = run([
+        "ffprobe",
+        "-v", "error",
+        "-show_entries", "format=duration",
+        "-of", "default=noprint_wrappers=1:nokey=1",
+        str(VIDEO_FILE)
+    ])
+
+    duration = float(result.stdout.strip())
+
+    if duration <= 0:
+        raise RuntimeError("Video duration is invalid.")
+
+    print(f"Video duration: {duration:.1f} seconds")
+
+    return duration
+
 
 # ==========================================
 # YOUTUBE UPLOAD
 # ==========================================
 
-def upload_to_youtube(story):
+def upload_video(story):
     client_json = os.getenv("YOUTUBE_CLIENT_JSON")
     refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN")
 
     if not client_json or not refresh_token:
-        raise RuntimeError(
-            "Missing YOUTUBE_CLIENT_JSON or YOUTUBE_REFRESH_TOKEN secret."
-        )
+        raise RuntimeError("YouTube secrets are missing.")
 
     client_data = json.loads(client_json)
-
     app_data = client_data.get("installed") or client_data.get("web")
 
     if not app_data:
-        raise RuntimeError("Invalid YouTube OAuth client JSON.")
+        raise RuntimeError("Invalid YouTube OAuth JSON.")
 
     credentials = Credentials(
         token=None,
@@ -563,7 +609,9 @@ def upload_to_youtube(story):
         token_uri=app_data["token_uri"],
         client_id=app_data["client_id"],
         client_secret=app_data["client_secret"],
-        scopes=["https://www.googleapis.com/auth/youtube.upload"]
+        scopes=[
+            "https://www.googleapis.com/auth/youtube.upload"
+        ]
     )
 
     youtube = build(
@@ -572,29 +620,26 @@ def upload_to_youtube(story):
         credentials=credentials
     )
 
-    description = (
-        f"{story['title']}\n\n"
-        "A short story from Nature Shorts.\n"
-        "#Nature #Mystery #Adventure #Shorts"
-    )
-
     body = {
         "snippet": {
             "title": story["title"][:100],
-            "description": description,
+            "description": (
+                story["title"]
+                + "\n\nA cinematic short story.\n"
+                "#Shorts #Nature #Mystery #Adventure #Science"
+            ),
             "tags": [
+                "shorts",
                 "nature",
                 "mystery",
                 "adventure",
-                "science",
-                "shorts"
+                "science"
             ],
             "categoryId": "22"
         },
         "status": {
             "privacyStatus": os.getenv(
-                "YOUTUBE_PRIVACY_STATUS",
-                "private"
+                "YOUTUBE_PRIVACY_STATUS", "private"
             ),
             "selfDeclaredMadeForKids": False
         }
@@ -614,7 +659,7 @@ def upload_to_youtube(story):
 
     response = request.execute()
 
-    print("Upload successful!")
+    print("YouTube upload successful.")
     print("Video ID:", response["id"])
 
 
@@ -623,23 +668,22 @@ def upload_to_youtube(story):
 # ==========================================
 
 def main():
-    print("================================")
-    print("     NATURE SHORTS AUTOMATION")
-    print("================================")
+    print("======================================")
+    print("      NATURE SHORTS AUTOMATION")
+    print("======================================")
 
-    clean_old_scenes()
+    clean_output()
 
-    story = select_story()
+    story = choose_story()
 
     print("Selected story:", story["title"])
 
-    images = get_scene_images(story)
+    # No video can proceed without six valid images.
+    images = generate_all_images(story)
 
     create_voice(story)
 
-    duration = get_audio_duration(VOICE_FILE)
-
-    print("Voice duration:", duration, "seconds")
+    duration = audio_duration(VOICE_FILE)
 
     create_subtitles(story, duration)
 
@@ -647,11 +691,12 @@ def main():
 
     create_video(images, duration)
 
-    print("Video created:", VIDEO_FILE)
+    validate_video()
 
-    upload_to_youtube(story)
+    # Upload only after every previous step succeeds.
+    upload_video(story)
 
-    print("ALL TASKS COMPLETED!")
+    print("ALL TASKS COMPLETED SUCCESSFULLY.")
 
 
 if __name__ == "__main__":
