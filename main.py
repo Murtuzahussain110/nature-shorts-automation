@@ -246,19 +246,8 @@ def render_scene(scene_no, caption, story_title):
         draw.ellipse((x-r,y-r,x+r,y+r), fill=(255, 232, 151))
     draw_ayan(draw, x=340 if scene_no % 2 else 385, y=1130, scale=1.0, pose=scene_no)
     draw_coco(draw, x=660 if scene_no % 2 else 690, y=1400, scale=0.82, pose=scene_no)
-    # Readable English subtitle panel, separate from character artwork.
-    panel_y = 1550
-    draw.rounded_rectangle((55,panel_y,1025,1815), radius=42, fill=(8,22,32), outline=(255,255,255), width=4)
-    font = load_font(42, bold=True)
-    lines = wrap_lines(caption, font, 850, draw)
-    line_h = 58
-    total_h = len(lines) * line_h
-    yy = panel_y + (265-total_h)//2
-    for line in lines[:4]:
-        bbox = draw.textbbox((0,0), line, font=font)
-        xx = (WIDTH - (bbox[2]-bbox[0]))//2
-        draw.text((xx,yy), line, font=font, fill=(255,255,255), stroke_width=1, stroke_fill=(0,0,0))
-        yy += line_h
+    # English subtitles are burned in later from the timed SRT file.
+    # Keep the artwork clean so captions are not duplicated.
     # Small episode label.
     small = load_font(26, bold=True)
     draw.text((58,80), "AYAN  +  COCO   •   URDU STORY", font=small, fill=(255,248,221))
