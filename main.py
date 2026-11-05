@@ -280,6 +280,89 @@ def make_subtitles(story, durations):
     SUBTITLE_FILE.write_text("\n".join(entries), encoding="utf-8")
 
 
+
+def render_animated_scene_clip(duration, number, scene_index, story_index, story_title):
+    """
+    Render real frame-to-frame character movement (not a zoom on one still).
+    Artwork is procedural and locally generated; no paid image API is used.
+    """
+    frame_rate = 12
+    frame_count = max(2, int(math.ceil(duration * frame_rate)))
+    base = gradient_background(scene_index)
+    base_draw = ImageDraw.Draw(base)
+    draw_landscape(base_draw, scene_index)
+    label_font = load_font(26, bold=True)
+    base_draw.text((58, 80), "AYAN  +  COCO   •   URDU STORY", font=label_font, fill=(255, 248, 221))
+
+    for frame_no in range(frame_count):
+        progress = frame_no / max(1, frame_count - 1)
+        phase = progress * math.tau
+        frame = base.copy()
+        draw = ImageDraw.Draw(frame)
+
+        # Ayan walks forward across the trail; alternating arm pose and body bob
+        # make the movement visible from frame to frame.
+        ayan_x = 340 + int(115 * math.sin(progress * math.pi * 1.35))
+        ayan_y = 1110 + int(18 * math.sin(phase * 2))
+        ayan_pose = frame_no % 2
+        draw_ayan(draw, x=ayan_x, y=ayan_y, scale=1.0, pose=ayan_pose)
+
+        # Coco bounds alongside Ayan, with a little hop on each stride.
+        coco_x = 655 + int(135 * math.sin(progress * math.pi * 1.6 + 0.7))
+        coco_y = 1390 - int(38 * abs(math.sin(phase * 1.5)))
+        draw_coco(draw, x=coco_x, y=coco_y, scale=0.82, pose=frame_no % 2)
+
+        # Moving dust/sparkles follow their footsteps.
+        for puff in range(3):
+            px = (ayan_x - 25 + puff * 27 + frame_no * 13) % WIDTH
+            py = 1570 + int(12 * math.sin(phase + puff))
+            radius = 5 + (puff % 2) * 3
+            draw.ellipse((px-radius, py-radius, px+radius, py+radius), fill=(235, 218, 165))
+
+        # A story moment in every episode: a small glowing clue travels ahead.
+        clue_x = int(160 + ((progress * 760 + scene_index * 83) % 760))
+        clue_y = 980 + int(22 * math.sin(phase * 2))
+        glow = 13 + int(4 * (0.5 + 0.5 * math.sin(phase * 3)))
+        draw.ellipse((clue_x-glow, clue_y-glow, clue_x+glow, clue_y+glow), fill=(255, 226, 133))
+        draw.ellipse((clue_x-4, clue_y-4, clue_x+4, clue_y+4), fill=(255, 255, 226))
+
+        # Episode-specific animated action prop in the rescue/reunion scene.
+        if scene_index == 4 and story_index == 0:
+            bird_x = int(160 + progress * 690)
+            bird_y = 900 - int(48 * math.sin(phase * 2))
+            wing = int(18 * math.sin(phase * 5))
+            draw.ellipse((bird_x-28, bird_y-14, bird_x+28, bird_y+14), fill=(245, 224, 177))
+            draw.polygon([(bird_x+20,bird_y),(bird_x+45,bird_y-8),(bird_x+45,bird_y+8)], fill=(232,151,76))
+            draw.arc((bird_x-18,bird_y-30-wing,bird_x+8,bird_y+8), 190, 340, fill=(255,248,220), width=6)
+        elif scene_index == 4 and story_index == 1:
+            turtle_x = int(190 + progress * 650)
+            turtle_y = 1500 + int(8 * math.sin(phase * 3))
+            draw.ellipse((turtle_x-42,turtle_y-28,turtle_x+42,turtle_y+28), fill=(91,145,83), outline=(35,83,61), width=5)
+            draw.ellipse((turtle_x+30,turtle_y-12,turtle_x+58,turtle_y+12), fill=(111,164,91))
+            draw.ellipse((turtle_x+43,turtle_y-7,turtle_x+48,turtle_y-2), fill=(20,35,25))
+        elif scene_index == 4 and story_index == 2:
+            for spark in range(7):
+                sx = int(140 + ((progress * 700 + spark * 113) % 800))
+                sy = 780 + int(55 * math.sin(phase * 2 + spark))
+                draw.ellipse((sx-6,sy-6,sx+6,sy+6), fill=(255,239,151))
+
+        frame_path = SCENES_DIR / f"scene_{number:02}_frame_{frame_no+1:04}.jpg"
+        frame.save(frame_path, "JPEG", quality=88, optimize=True)
+
+    clip_path = OUTPUT_DIR / f"clip_{number}.mp4"
+    pattern = SCENES_DIR / f"scene_{number:02}_frame_%04d.jpg"
+    run_command([
+        "ffmpeg", "-y", "-framerate", str(frame_rate), "-i", str(pattern),
+        "-vf", f"fps={FPS},scale={WIDTH}:{HEIGHT}:flags=fast_bilinear,format=yuv420p",
+        "-t", f"{duration:.3f}", "-an", "-c:v", "libx264",
+        "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
+        str(clip_path)
+    ])
+    # Remove temporary frames after the scene has been encoded.
+    for frame_path in SCENES_DIR.glob(f"scene_{number:02}_frame_*.jpg"):
+        frame_path.unlink()
+    return clip_path
+
 def create_scene_clip(image_path, duration, number):
     clip_path = OUTPUT_DIR / f"clip_{number}.mp4"
     frames = max(1, int(math.ceil(duration * FPS)))
@@ -435,13 +518,10 @@ def main():
         if old.exists():
             old.unlink()
 
-    image_files, audio_files, durations = [], [], []
+    audio_files, durations = [], []
+    story_index = STORIES.index(story)
     for index, (urdu, english) in enumerate(story["scenes"], start=1):
-        print(f"Creating illustrated scene {index}/{len(story['scenes'])}...")
-        image_path = SCENES_DIR / f"scene_{index:02}.jpg"
-        render_scene(index, english, story["title"]).save(image_path, "JPEG", quality=94)
-        image_files.append(image_path)
-
+        print(f"Creating Urdu narration for scene {index}/{len(story['scenes'])}...")
         audio_path = AUDIO_DIR / f"voice_{index:02}.mp3"
         asyncio.run(create_voice_segment(urdu, audio_path))
         audio_files.append(audio_path)
@@ -460,8 +540,8 @@ def main():
 
     make_subtitles(story, durations)
     clips = [
-        create_scene_clip(image, duration, i)
-        for i, (image, duration) in enumerate(zip(image_files, durations), start=1)
+        render_animated_scene_clip(duration, i, i, story_index, story["title"])
+        for i, duration in enumerate(durations, start=1)
     ]
     silent_video = join_files(clips, CONCAT_FILE, OUTPUT_DIR / "silent_video.mp4")
     create_final_video(silent_video)
