@@ -32,7 +32,7 @@ AUDIO_DIR = OUTPUT_DIR / "audio"
 for folder in (OUTPUT_DIR, SCENES_DIR, AUDIO_DIR):
     folder.mkdir(parents=True, exist_ok=True)
 
-VIDEO_FILE = OUTPUT_DIR / "ayan_coco_short.mp4"
+VIDEO_FILE = OUTPUT_DIR / "tom_jerry_short.mp4"
 VOICE_FILE = OUTPUT_DIR / "voice.mp3"
 SUBTITLE_FILE = OUTPUT_DIR / "subtitles.srt"
 CONCAT_FILE = OUTPUT_DIR / "clips.txt"
@@ -40,6 +40,7 @@ AUDIO_CONCAT_FILE = OUTPUT_DIR / "audio.txt"
 
 WIDTH, HEIGHT, FPS = 1080, 1920, 25
 VOICE = os.getenv("URDU_VOICE", "ur-PK-UzmaNeural")
+BLENDER_SCRIPT = BASE_DIR / "blender" / "render_scene.py"
 PRIVACY_DEFAULT = "private"
 
 # Original characters: keep their colors, clothes and proportions consistent.
@@ -48,39 +49,39 @@ COCO = {"fur": (232, 123, 47), "cream": (255, 225, 183)}
 
 STORIES = [
     {
-        "title": "Ayan and Coco: The Secret of the Whispering Forest",
-        "tags": ["Ayan and Coco", "Urdu cartoon story", "family animation", "forest adventure", "kids story", "shorts"],
+        "title": "Tom & Jerry Urdu Cartoon: The Great Cheese Chase",
+        "tags": ["Tom and Jerry", "Urdu cartoon", "funny cat and mouse", "animated comedy", "cartoon shorts", "family entertainment"],
         "scenes": [
-            ("ایک دن ایان اپنے ننھے دوست کوکو کے ساتھ سرسبز جنگل میں گیا۔", "Ayan and Coco enter a beautiful forest."),
-            ("اچانک درختوں کے پیچھے سے ایک نرم سی سرگوشی سنائی دی۔", "A mysterious whisper comes from behind the trees."),
-            ("کوکو نے اپنے لمبے کان کھڑے کیے اور ایک چمکتی پگڈنڈی کی طرف دوڑا۔", "Coco spots a glowing trail and leads the way."),
-            ("راستے میں انہیں ایک ننھا پرندہ ملا جس کا گھونسلا نیچے گر گیا تھا۔", "They find a little bird beside its fallen nest."),
-            ("ایان نے احتیاط سے گھونسلا واپس شاخ پر رکھا اور کوکو نے پرندے کو تسلی دی۔", "Ayan returns the nest while Coco comforts the bird."),
-            ("جنگل کی سرگوشی دراصل ہوا کی آواز تھی، اور دونوں نے مدد کرنے کی خوشی سیکھی۔", "The whisper was only the wind. Helping made their day magical.")
+            ("جیری نے میز پر رکھا پنیر دیکھا اور چپکے سے اس کی طرف بڑھا۔", "Jerry spots a delicious piece of cheese and sneaks closer."),
+            ("ٹام نے اسے دیکھ لیا اور خاموشی سے جیری کے پیچھے چل پڑا۔", "Tom notices Jerry and quietly follows him."),
+            ("جیری نے پنیر اٹھایا تو ٹام نے اچانک چھلانگ لگا دی۔", "Jerry grabs the cheese just as Tom makes a surprise leap."),
+            ("جیری تیزی سے بھاگا اور ٹام اس کے پیچھے دوڑ پڑا۔", "Jerry races away and Tom charges after him."),
+            ("ٹام پھسل کر گھومتا ہوا نرم گھاس میں جا گرا۔", "Tom slips, spins around and lands in the soft grass."),
+            ("جیری پنیر لے کر ہنستا ہوا نکل گیا اور ٹام حیران رہ گیا۔", "Jerry escapes with the cheese while Tom looks completely puzzled.")
         ]
     },
     {
-        "title": "Ayan and Coco: The Little River Rescue",
-        "tags": ["Ayan and Coco", "Urdu cartoon story", "river rescue", "family animation", "friendship", "shorts"],
+        "title": "Tom & Jerry Urdu Cartoon: The Sneaky Mouse Trick",
+        "tags": ["Tom and Jerry", "Urdu funny cartoon", "mouse trick", "cat chase", "3D animation", "shorts"],
         "scenes": [
-            ("ایان اور کوکو پہاڑوں کے درمیان ایک خوبصورت دریا کے کنارے پہنچے۔", "Ayan and Coco reach a sparkling mountain river."),
-            ("انہیں پانی کے قریب ایک چھوٹا کچھوا پریشان نظر آیا۔", "A tiny turtle looks worried beside the water."),
-            ("کچھوے کا راستہ ایک گرے ہوئے درخت نے بند کر دیا تھا۔", "A fallen branch is blocking the turtle's path."),
-            ("ایان نے ایک مضبوط لکڑی سے راستہ صاف کیا اور کوکو نے پتے ہٹائے۔", "Ayan moves the branch while Coco clears the leaves."),
-            ("کچھوا خوشی سے پانی کی طرف چل پڑا اور دونوں دوست مسکرانے لگے۔", "The happy turtle makes its way safely to the river."),
-            ("ایان نے کہا، چھوٹی سی مدد بھی کسی کے لیے بہت بڑی خوشی بن سکتی ہے۔", "A small act of kindness can make a big difference.")
+            ("جیری نے ٹام کے جوتے کے پاس ایک چھوٹا سا پنیر رکھ دیا۔", "Jerry leaves a tiny cheese piece beside Tom's foot."),
+            ("ٹام نے پنیر دیکھا اور خوشی سے اسے اٹھانے لگا۔", "Tom spots the cheese and reaches for it."),
+            ("جیری نے ڈوری کھینچی اور ٹام کا پاؤں اوپر اٹھ گیا۔", "Jerry pulls a string and Tom's foot pops into the air."),
+            ("ٹام توازن کھو بیٹھا اور ایک طرف لڑکھڑانے لگا۔", "Tom loses his balance and wobbles from side to side."),
+            ("جیری ہنستا ہوا باہر نکلا مگر خود بھی پنیر پر پھسل گیا۔", "Jerry laughs, then slips on the cheese himself."),
+            ("دونوں ایک دوسرے کو دیکھتے رہے اور پھر شرارت سے مسکرا دیے۔", "They stare at each other, then share a mischievous grin.")
         ]
     },
     {
-        "title": "Ayan and Coco: The Mountain Star",
-        "tags": ["Ayan and Coco", "Urdu cartoon story", "mountain adventure", "friendship", "family animation", "shorts"],
+        "title": "Tom & Jerry Urdu Cartoon: The Runaway Cheese",
+        "tags": ["Tom and Jerry", "Urdu cartoon story", "funny chase", "3D cartoon", "kids entertainment", "shorts"],
         "scenes": [
-            ("ایک ٹھنڈی شام ایان اور کوکو پہاڑی راستے پر چہل قدمی کر رہے تھے۔", "Ayan and Coco walk along a peaceful mountain trail."),
-            ("انہیں گھاس میں ایک چھوٹی سی چمکتی چیز دکھائی دی۔", "A tiny sparkling light glimmers in the grass."),
-            ("وہ ایک جگنو تھا جو اپنے دوستوں سے بچھڑ گیا تھا۔", "It is a firefly that has lost its friends."),
-            ("کوکو نے جگنو کو اپنے پنجے پر بٹھایا اور ایان نے راستہ روشن کیا۔", "Coco gently carries the firefly as Ayan lights the way."),
-            ("کچھ دور انہیں جگنوؤں کا پورا جھنڈ چمکتا ہوا نظر آیا۔", "They discover a whole group of glowing fireflies."),
-            ("جگنو اپنے دوستوں سے مل گیا، اور رات ستاروں کی طرح جگمگا اٹھی۔", "The firefly reunites with its friends beneath the stars.")
+            ("ٹام نے پنیر کا بڑا ٹکڑا اٹھایا اور اسے چھپانے لگا۔", "Tom picks up a giant piece of cheese and tries to hide it."),
+            ("جیری نے پنیر کو پہیوں والی چھوٹی گاڑی پر رکھ دیا۔", "Jerry places the cheese on a tiny toy cart."),
+            ("گاڑی تیزی سے چل پڑی اور جیری اس کے پیچھے بھاگا۔", "The cart rolls away and Jerry races after it."),
+            ("ٹام بھی پنیر پکڑنے کے لیے پوری رفتار سے دوڑا۔", "Tom sprints after the runaway cheese."),
+            ("گاڑی ایک جھاڑی سے ٹکرائی اور پنیر ہوا میں اچھل گیا۔", "The cart hits a bush and the cheese flies into the air."),
+            ("پنیر دونوں کے درمیان گرا اور دونوں اسے پکڑنے کو لپکے۔", "The cheese lands between them and both leap for it at once.")
         ]
     }
 ]
@@ -419,10 +420,13 @@ def make_youtube_description(story):
     tags = " ".join("#" + re.sub(r"[^A-Za-z0-9]", "", t.replace(" ", "")) for t in story["tags"][:5])
     return (
         f"{story['title']}\n\n"
-        "A brand-new, family-friendly Urdu cartoon adventure featuring Ayan and his little fox friend Coco. "
-        "Original illustrated characters, Urdu narration and English subtitles.\n\n"
-        "Enjoy the story, share it with your family, and subscribe for the next adventure!\n\n"
-        f"#Shorts #UrduStories #CartoonStories {tags}"
+        "Tom & Jerry funny animated cartoon episode with Urdu narration and English subtitles. "
+        "A playful cat-and-mouse comedy adventure for cartoon fans.\n\n"
+        "SERIES: Tom & Jerry Urdu Cartoon Shorts\n"
+        "CATEGORY: Film & Animation\n"
+        "LANGUAGE: Urdu voice + English subtitles\n\n"
+        "Watch the daily episode and follow for more funny cartoon moments!\n\n"
+        f"#TomAndJerry #UrduCartoon #CartoonShorts #FunnyCartoon #Shorts {tags}"
     )[:4500]
 
 
@@ -462,8 +466,8 @@ def upload_to_youtube(title, story):
         "snippet": {
             "title": clean_text(title)[:100],
             "description": make_youtube_description(story),
-            "tags": story["tags"] + ["youtube shorts","Urdu cartoon","Ayan","Coco","family friendly"],
-            "categoryId": "22"
+            "tags": story["tags"] + ["youtube shorts","Tom and Jerry","Urdu voice","English subtitles","animated comedy","family friendly"],
+            "categoryId": "1"
         },
         "status": {
             "privacyStatus": privacy,
@@ -497,7 +501,7 @@ def upload_to_youtube(title, story):
 
 def main():
     print("\n======================================")
-    print("   AYAN & COCO URDU CARTOON SHORTS")
+    print("   TOM & JERRY URDU 3D CARTOON SHORTS")
     print("======================================\n")
     # Select a predictable daily episode; manual reruns can use an override.
     override = os.getenv("STORY_INDEX")
@@ -539,10 +543,17 @@ def main():
     ])
 
     make_subtitles(story, durations)
-    clips = [
-        render_animated_scene_clip(duration, i, i, story_index, story["title"])
-        for i, duration in enumerate(durations, start=1)
-    ]
+    clips = []
+    for i, duration in enumerate(durations, start=1):
+        clip_path = OUTPUT_DIR / f"clip_{i}.mp4"
+        print(f"Rendering 3D Tom & Jerry scene {i}/{len(durations)} with Blender...")
+        run_command([
+            "blender", "-b", "--python", str(BLENDER_SCRIPT), "--",
+            f"{duration:.3f}", str(i), str(story_index), str(clip_path)
+        ])
+        if not clip_path.exists() or clip_path.stat().st_size < 10000:
+            raise RuntimeError(f"Blender did not create scene clip {i}.")
+        clips.append(clip_path)
     silent_video = join_files(clips, CONCAT_FILE, OUTPUT_DIR / "silent_video.mp4")
     create_final_video(silent_video)
     upload_to_youtube(story["title"], story)
