@@ -48,42 +48,76 @@ AYAN = {"jacket": (22, 139, 157), "backpack": (190, 54, 48)}
 COCO = {"fur": (232, 123, 47), "cream": (255, 225, 183)}
 
 STORIES = [
-    {
-        "title": "Tom & Jerry Urdu Cartoon: The Great Cheese Chase",
-        "tags": ["Tom and Jerry", "Urdu cartoon", "funny cat and mouse", "animated comedy", "cartoon shorts", "family entertainment"],
-        "scenes": [
-            ("جیری نے میز پر رکھا پنیر دیکھا اور چپکے سے اس کی طرف بڑھا۔", "Jerry spots a delicious piece of cheese and sneaks closer."),
-            ("ٹام نے اسے دیکھ لیا اور خاموشی سے جیری کے پیچھے چل پڑا۔", "Tom notices Jerry and quietly follows him."),
-            ("جیری نے پنیر اٹھایا تو ٹام نے اچانک چھلانگ لگا دی۔", "Jerry grabs the cheese just as Tom makes a surprise leap."),
-            ("جیری تیزی سے بھاگا اور ٹام اس کے پیچھے دوڑ پڑا۔", "Jerry races away and Tom charges after him."),
-            ("ٹام پھسل کر گھومتا ہوا نرم گھاس میں جا گرا۔", "Tom slips, spins around and lands in the soft grass."),
-            ("جیری پنیر لے کر ہنستا ہوا نکل گیا اور ٹام حیران رہ گیا۔", "Jerry escapes with the cheese while Tom looks completely puzzled.")
-        ]
-    },
-    {
-        "title": "Tom & Jerry Urdu Cartoon: The Sneaky Mouse Trick",
-        "tags": ["Tom and Jerry", "Urdu funny cartoon", "mouse trick", "cat chase", "3D animation", "shorts"],
-        "scenes": [
-            ("جیری نے ٹام کے جوتے کے پاس ایک چھوٹا سا پنیر رکھ دیا۔", "Jerry leaves a tiny cheese piece beside Tom's foot."),
-            ("ٹام نے پنیر دیکھا اور خوشی سے اسے اٹھانے لگا۔", "Tom spots the cheese and reaches for it."),
-            ("جیری نے ڈوری کھینچی اور ٹام کا پاؤں اوپر اٹھ گیا۔", "Jerry pulls a string and Tom's foot pops into the air."),
-            ("ٹام توازن کھو بیٹھا اور ایک طرف لڑکھڑانے لگا۔", "Tom loses his balance and wobbles from side to side."),
-            ("جیری ہنستا ہوا باہر نکلا مگر خود بھی پنیر پر پھسل گیا۔", "Jerry laughs, then slips on the cheese himself."),
-            ("دونوں ایک دوسرے کو دیکھتے رہے اور پھر شرارت سے مسکرا دیے۔", "They stare at each other, then share a mischievous grin.")
-        ]
-    },
-    {
-        "title": "Tom & Jerry Urdu Cartoon: The Runaway Cheese",
-        "tags": ["Tom and Jerry", "Urdu cartoon story", "funny chase", "3D cartoon", "kids entertainment", "shorts"],
-        "scenes": [
-            ("ٹام نے پنیر کا بڑا ٹکڑا اٹھایا اور اسے چھپانے لگا۔", "Tom picks up a giant piece of cheese and tries to hide it."),
-            ("جیری نے پنیر کو پہیوں والی چھوٹی گاڑی پر رکھ دیا۔", "Jerry places the cheese on a tiny toy cart."),
-            ("گاڑی تیزی سے چل پڑی اور جیری اس کے پیچھے بھاگا۔", "The cart rolls away and Jerry races after it."),
-            ("ٹام بھی پنیر پکڑنے کے لیے پوری رفتار سے دوڑا۔", "Tom sprints after the runaway cheese."),
-            ("گاڑی ایک جھاڑی سے ٹکرائی اور پنیر ہوا میں اچھل گیا۔", "The cart hits a bush and the cheese flies into the air."),
-            ("پنیر دونوں کے درمیان گرا اور دونوں اسے پکڑنے کو لپکے۔", "The cheese lands between them and both leap for it at once.")
-        ]
-    }
+    {"title":"Tom & Jerry Urdu Cartoon EP 01 | The Great Cheese Chase","tags":["Tom and Jerry","Urdu cartoon","funny cat and mouse","animated comedy","cartoon shorts"],"scenes":[
+        ("جیری نے میز پر رکھا پنیر دیکھا اور چپکے سے اس کی طرف بڑھا۔","Jerry spots a delicious piece of cheese and sneaks closer."),
+        ("ٹام نے اسے دیکھ لیا اور خاموشی سے جیری کے پیچھے چل پڑا۔","Tom notices Jerry and quietly follows him."),
+        ("جیری نے پنیر اٹھایا تو ٹام نے اچانک چھلانگ لگا دی۔","Jerry grabs the cheese just as Tom makes a surprise leap."),
+        ("جیری تیزی سے بھاگا اور ٹام اس کے پیچھے دوڑ پڑا۔","Jerry races away and Tom charges after him."),
+        ("ٹام پھسل کر گھومتا ہوا نرم گھاس میں جا گرا۔","Tom slips, spins around and lands in the soft grass."),
+        ("جیری پنیر لے کر ہنستا ہوا نکل گیا اور ٹام حیران رہ گیا۔","Jerry escapes with the cheese while Tom looks completely puzzled.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 02 | The Sneaky Mouse Trick","tags":["Tom and Jerry","Urdu funny cartoon","mouse trick","cat chase","3D animation"],"scenes":[
+        ("جیری نے ٹام کے جوتے کے پاس ایک چھوٹا سا پنیر رکھ دیا۔","Jerry leaves a tiny cheese piece beside Tom's foot."),
+        ("ٹام نے پنیر دیکھا اور خوشی سے اسے اٹھانے لگا۔","Tom spots the cheese and reaches for it."),
+        ("جیری نے ڈوری کھینچی اور ٹام کا پاؤں اوپر اٹھ گیا۔","Jerry pulls a string and Tom's foot pops into the air."),
+        ("ٹام توازن کھو بیٹھا اور ایک طرف لڑکھڑانے لگا۔","Tom loses his balance and wobbles from side to side."),
+        ("جیری ہنستا ہوا باہر نکلا مگر خود بھی پنیر پر پھسل گیا۔","Jerry laughs, then slips on the cheese himself."),
+        ("دونوں ایک دوسرے کو دیکھتے رہے اور پھر شرارت سے مسکرا دیے۔","They stare at each other, then share a mischievous grin.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 03 | The Runaway Cheese Cart","tags":["Tom and Jerry","Urdu cartoon story","funny chase","3D cartoon","kids entertainment"],"scenes":[
+        ("ٹام نے پنیر کا بڑا ٹکڑا اٹھایا اور اسے چھپانے لگا۔","Tom picks up a giant piece of cheese and tries to hide it."),
+        ("جیری نے پنیر کو پہیوں والی چھوٹی گاڑی پر رکھ دیا۔","Jerry places the cheese on a tiny toy cart."),
+        ("گاڑی تیزی سے چل پڑی اور جیری اس کے پیچھے بھاگا۔","The cart rolls away and Jerry races after it."),
+        ("ٹام بھی پنیر پکڑنے کے لیے پوری رفتار سے دوڑا۔","Tom sprints after the runaway cheese."),
+        ("گاڑی ایک جھاڑی سے ٹکرائی اور پنیر ہوا میں اچھل گیا۔","The cart hits a bush and the cheese flies into the air."),
+        ("پنیر دونوں کے درمیان گرا اور دونوں اسے پکڑنے کو لپکے۔","The cheese lands between them and both leap for it at once.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 04 | The Balloon Escape","tags":["Tom and Jerry","balloon prank","Urdu cartoon","funny animation","shorts"],"scenes":[
+        ("جیری نے رنگین غبارہ دیکھا اور اسے اپنے ساتھ باندھ لیا۔","Jerry finds a bright balloon and ties it to himself."),
+        ("ٹام نے جیری کو پکڑنے کے لیے دوڑ لگائی۔","Tom starts running to catch Jerry."),
+        ("غبارہ جیری کو ہوا میں اوپر اٹھانے لگا۔","The balloon begins lifting Jerry into the air."),
+        ("ٹام نے غبارے کی ڈوری پکڑ لی اور خود بھی اوپر کھنچ گیا۔","Tom grabs the string and gets pulled upward too."),
+        ("دونوں درخت کی شاخ کے پاس گھومنے لگے۔","The two spin around beside a tree branch."),
+        ("غبارہ پھٹ گیا اور دونوں نرم گھاس پر آ گرے۔","The balloon pops and both tumble onto the soft grass.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 05 | The Tiny Drum","tags":["Tom and Jerry","funny drum","Urdu animation","cartoon comedy","family shorts"],"scenes":[
+        ("جیری کو ایک ننھا ڈھول ملا اور اس نے بجانا شروع کر دیا۔","Jerry finds a tiny drum and starts playing it."),
+        ("آواز سن کر ٹام نیند سے جاگ گیا۔","The noise wakes Tom from his nap."),
+        ("ٹام نے ڈھول پکڑنے کی کوشش کی مگر جیری بھاگ نکلا۔","Tom tries to grab the drum, but Jerry darts away."),
+        ("جیری نے ڈھول بجایا تو ٹام کے قدم خود بخود ناچنے لگے۔","Jerry beats the drum and Tom's feet start dancing."),
+        ("ٹام گھومتا رہا اور جھاڑی میں جا گرا۔","Tom spins around and tumbles into a bush."),
+        ("جیری نے آخری تھاپ لگائی اور ٹام نے حیرت سے اسے دیکھا۔","Jerry plays one final beat as Tom stares in disbelief.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 06 | The Fishing Trouble","tags":["Tom and Jerry","fishing comedy","Urdu cartoon","cat mouse chase","animated shorts"],"scenes":[
+        ("جیری نے تالاب کے کنارے مچھلی پکڑنے کی چھڑی دیکھی۔","Jerry spots a fishing rod beside the pond."),
+        ("ٹام نے چھڑی اٹھائی اور جیری کو چارہ دکھایا۔","Tom picks it up and shows Jerry the bait."),
+        ("جیری نے چارہ کھینچا تو ٹام کا توازن بگڑ گیا۔","Jerry tugs the bait and throws Tom off balance."),
+        ("ٹام پانی میں گرنے سے بچنے کے لیے اچھلا۔","Tom jumps to avoid falling into the water."),
+        ("چھڑی گھوم کر ٹام کے گرد لپٹ گئی۔","The fishing line spins around Tom."),
+        ("جیری محفوظ جگہ بیٹھ کر ہنسنے لگا۔","Jerry sits safely nearby and laughs.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 07 | The Sleepy Cat","tags":["Tom and Jerry","sleepy cat","Urdu cartoon","funny mouse","3D comedy"],"scenes":[
+        ("ٹام درخت کے نیچے مزے سے سو رہا تھا۔","Tom is sleeping peacefully under a tree."),
+        ("جیری نے آہستہ سے ٹام کی دم کے پاس گھنٹی رکھ دی۔","Jerry quietly places a bell near Tom's tail."),
+        ("ہوا چلی تو گھنٹی زور سے بجنے لگی۔","A breeze makes the bell ring loudly."),
+        ("ٹام گھبرا کر اچھلا اور ادھر ادھر دیکھنے لگا۔","Tom jumps up in surprise and looks around."),
+        ("جیری پتوں کے پیچھے چھپ کر ہنستا رہا۔","Jerry hides behind the leaves and giggles."),
+        ("ٹام نے جیری کو دیکھ لیا اور دوبارہ دوڑ شروع ہو گئی۔","Tom spots Jerry and the chase begins again.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 08 | The Magic Hat","tags":["Tom and Jerry","magic hat prank","Urdu cartoon","funny animation","shorts"],"scenes":[
+        ("جیری کو ایک بڑا جادوئی ٹوپی نما ڈبہ ملا۔","Jerry discovers a mysterious magician's hat."),
+        ("ٹام نے اندر جھانکا تو جیری غائب ہو گیا۔","Tom peeks inside and Jerry disappears."),
+        ("جیری ٹام کے پیچھے سے باہر نکلا اور اسے چونکا دیا۔","Jerry pops out behind Tom and gives him a fright."),
+        ("ٹام نے ٹوپی اٹھائی تو اس میں سے رنگین گیندیں نکلیں۔","Tom lifts the hat and colorful balls spill out."),
+        ("گیندیں ٹام کے پیروں کے نیچے آ گئیں اور وہ پھسل گیا۔","The balls roll under Tom's feet and he slips."),
+        ("جیری نے ٹوپی پہن کر فاتحانہ انداز میں سلام کیا۔","Jerry wears the hat and gives a triumphant little bow.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 09 | The Garden Race","tags":["Tom and Jerry","garden race","Urdu cartoon","funny chase","family animation"],"scenes":[
+        ("جیری نے باغ میں ایک سرخ کھلونا گاڑی دیکھی۔","Jerry finds a little red toy car in the garden."),
+        ("وہ گاڑی میں بیٹھا اور تیزی سے آگے نکل گیا۔","He hops in and zooms away."),
+        ("ٹام نے دوڑ کر گاڑی کا پیچھا شروع کر دیا۔","Tom runs after the speeding toy car."),
+        ("گاڑی پھولوں کے گملوں کے درمیان سے گزری۔","The car zigzags between flower pots."),
+        ("ٹام نے چھلانگ لگائی مگر خالی ٹوکری میں جا گرا۔","Tom leaps but lands inside an empty basket."),
+        ("جیری گاڑی روک کر ٹام کو دیکھ کر ہنسنے لگا۔","Jerry stops the car and laughs at Tom.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 10 | The Picnic Surprise","tags":["Tom and Jerry","picnic surprise","Urdu cartoon","funny cat mouse","cartoon shorts"],"scenes":[
+        ("جیری نے پکنک کی ٹوکری میں مزیدار سینڈوچ دیکھا۔","Jerry spots a tasty sandwich in a picnic basket."),
+        ("ٹام نے ٹوکری اپنے پاس کھینچ لی۔","Tom pulls the basket closer to himself."),
+        ("جیری نے چپکے سے ٹوکری کا ڈھکن کھولا۔","Jerry quietly lifts the basket lid."),
+        ("ایک سیب لڑھکا اور ٹام اس کے پیچھے بھاگا۔","An apple rolls away and Tom chases it."),
+        ("سیب ٹام کے سر سے ٹکرا کر واپس ٹوکری میں جا گرا۔","The apple bounces off Tom's head and lands back in the basket."),
+        ("جیری نے سینڈوچ اٹھایا اور دونوں نے پکنک بانٹ لی۔","Jerry grabs the sandwich and the two end up sharing the picnic.")]}
 ]
 
 
@@ -251,7 +285,7 @@ def render_scene(scene_no, caption, story_title):
     # Keep the artwork clean so captions are not duplicated.
     # Small episode label.
     small = load_font(26, bold=True)
-    draw.text((58,80), "AYAN  +  COCO   •   URDU STORY", font=small, fill=(255,248,221))
+    draw.text((58,80), "TOM  +  JERRY   •   URDU CARTOON", font=small, fill=(255,248,221))
     return im
 
 
