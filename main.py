@@ -1,5 +1,6 @@
 import os
 import json
+import math
 import random
 import re
 import html
@@ -10,742 +11,586 @@ from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 
-import requests
-from PIL import Image
 import edge_tts
+from PIL import Image, ImageDraw, ImageFont
 
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 
-# ==========================================
-# SETTINGS
-# ==========================================
+# ============================================================
+# AYAN & COCO - ORIGINAL FAMILY-FRIENDLY URDU CARTOON SHORTS
+# All artwork is drawn locally with Pillow; no paid image API.
+# Visual format: layered 2.5D motion-comic, not full 3D animation.
+# ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent
 OUTPUT_DIR = BASE_DIR / "output"
 SCENES_DIR = OUTPUT_DIR / "scenes"
+AUDIO_DIR = OUTPUT_DIR / "audio"
+for folder in (OUTPUT_DIR, SCENES_DIR, AUDIO_DIR):
+    folder.mkdir(parents=True, exist_ok=True)
 
-OUTPUT_DIR.mkdir(exist_ok=True)
-SCENES_DIR.mkdir(exist_ok=True)
-
-VIDEO_FILE = OUTPUT_DIR / "nature_short.mp4"
+VIDEO_FILE = OUTPUT_DIR / "tom_jerry_short.mp4"
 VOICE_FILE = OUTPUT_DIR / "voice.mp3"
 SUBTITLE_FILE = OUTPUT_DIR / "subtitles.srt"
 CONCAT_FILE = OUTPUT_DIR / "clips.txt"
-CREDITS_FILE = OUTPUT_DIR / "image_credits.txt"
+AUDIO_CONCAT_FILE = OUTPUT_DIR / "audio.txt"
 
-WIDTH = 1080
-HEIGHT = 1920
-FPS = 25
+WIDTH, HEIGHT, FPS = 1080, 1920, 25
+VOICE = os.getenv("URDU_VOICE", "ur-PK-UzmaNeural")
+BLENDER_SCRIPT = BASE_DIR / "blender" / "render_scene.py"
+PRIVACY_DEFAULT = "private"
 
-VOICE = "ur-PK-UzmaNeural"
-WIKIMEDIA_API = "https://commons.wikimedia.org/w/api.php"
-
-HEADERS = {
-    # Wikimedia asks automated clients to identify themselves.
-    "User-Agent": "NatureShortsAutomation/2.0 (GitHub Actions; contact: project owner)",
-    "Accept": "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-}
-
-
-# ==========================================
-# STORIES
-# ==========================================
+# Original characters: keep their colors, clothes and proportions consistent.
+AYAN = {"jacket": (22, 139, 157), "backpack": (190, 54, 48)}
+COCO = {"fur": (232, 123, 47), "cream": (255, 225, 183)}
 
 STORIES = [
-    {
-        "title": "Lost in the World's Wildest Jungle",
-        "narration": (
-            "ایک مسافر گھنے جنگل میں راستہ بھول گیا۔ "
-            "ہر طرف عجیب آوازیں سنائی دے رہی تھیں۔ "
-            "اچانک اسے درختوں کے پیچھے دو چمکتی ہوئی آنکھیں نظر آئیں۔ "
-            "وہ آہستہ آہستہ پیچھے ہٹنے لگا۔ "
-            "لیکن پھر اسے زمین پر ایک پرانا نقشہ ملا۔ "
-            "کیا یہ نقشہ اسے جنگل سے باہر نکال سکتا تھا؟"
-        ),
-        "scenes": [
-            ("tropical rainforest jungle", "A mysterious jungle stretches endlessly."),
-            ("dense forest walking trail", "He follows a lonely path into the forest."),
-            ("dark rainforest sunlight trees", "Strange sounds come from the darkness."),
-            ("wild animal in forest", "Something watches him from the trees."),
-            ("old map ancient paper", "An old map is hidden beneath the leaves."),
-            ("jungle river sunrise", "A new path appears beyond the trees.")
-        ]
-    },
-    {
-        "title": "The Secret Hidden Under the Ocean",
-        "narration": (
-            "سمندر کی گہرائی میں ایک غوطہ خور کو ایک پراسرار جگہ ملی۔ "
-            "وہاں پرانے پتھر اور عجیب نشان موجود تھے۔ "
-            "جیسے ہی وہ آگے بڑھا، اسے ایک ڈوبی ہوئی عمارت نظر آئی۔ "
-            "اس کے دروازے پر عجیب نقش بنے ہوئے تھے۔ "
-            "وہاں کوئی ہزاروں سال پہلے رہتا تھا۔ "
-            "آخر یہ جگہ کس راز کو چھپائے ہوئے تھی؟"
-        ),
-        "scenes": [
-            ("deep blue ocean underwater", "Deep beneath the ocean, something waits."),
-            ("scuba diver underwater", "A diver explores the deep ocean."),
-            ("underwater ancient stone ruins", "Mysterious stones appear below the surface."),
-            ("underwater ancient architecture", "A forgotten structure appears."),
-            ("underwater coral reef fish", "Life continues around the ancient ruins."),
-            ("sunlight underwater ocean", "The ocean keeps its secrets.")
-        ]
-    },
-    {
-        "title": "A Strange Light in the Mountains",
-        "narration": (
-            "ایک پہاڑی گاؤں میں ہر رات ایک عجیب روشنی دکھائی دیتی تھی۔ "
-            "لوگ اسے دیکھ کر خوفزدہ ہو جاتے تھے۔ "
-            "ایک نوجوان نے اس راز کو جاننے کا فیصلہ کیا۔ "
-            "وہ رات کے اندھیرے میں پہاڑ کی طرف روانہ ہوا۔ "
-            "وہاں اسے ایک پرانی غار نظر آئی۔ "
-            "غار کے اندر کیا تھا، یہ آج تک کوئی نہیں جانتا۔"
-        ),
-        "scenes": [
-            ("mountain village at night", "A quiet village hides a strange mystery."),
-            ("mountains night landscape", "A mysterious light appears every night."),
-            ("hiker mountain trail", "A young explorer follows the light."),
-            ("rocky mountain cave entrance", "He discovers an ancient cave."),
-            ("glowing cave crystals", "A strange glow fills the cave."),
-            ("mountain sunrise landscape", "The mystery remains unsolved.")
-        ]
-    },
-    {
-        "title": "The Forest That Never Sleeps",
-        "narration": (
-            "دنیا میں ایک ایسا جنگل بھی ہے جہاں رات کو عجیب آوازیں آتی ہیں۔ "
-            "ایک تحقیقاتی ٹیم وہاں پہنچی۔ "
-            "انہوں نے کیمرے لگائے اور رات کا انتظار کیا۔ "
-            "آدھی رات کو درختوں کے درمیان حرکت محسوس ہوئی۔ "
-            "صبح کیمرے میں ایک حیران کن منظر ریکارڈ تھا۔ "
-            "کیا یہ کوئی جانور تھا یا قدرت کا کوئی انوکھا راز؟"
-        ),
-        "scenes": [
-            ("foggy forest tall trees", "A forest hides an unusual secret."),
-            ("scientists exploring forest", "A research team enters the forest."),
-            ("wildlife camera forest", "Cameras watch the forest after dark."),
-            ("dark forest moonlight", "Something moves between the trees."),
-            ("wild animal forest night", "The camera captures a mysterious visitor."),
-            ("sunlight green forest", "Nature still holds many secrets.")
-        ]
-    },
-    {
-        "title": "The World's Most Dangerous Road",
-        "narration": (
-            "پہاڑوں کے درمیان ایک ایسی سڑک ہے جہاں ذرا سی غلطی خطرناک ہو سکتی ہے۔ "
-            "ایک طرف بلند پہاڑ اور دوسری طرف گہری کھائی ہے۔ "
-            "ڈرائیور آہستہ آہستہ گاڑی آگے بڑھاتا ہے۔ "
-            "راستے میں اچانک شدید دھند چھا جاتی ہے۔ "
-            "کچھ لمحوں کے لیے اسے کچھ دکھائی نہیں دیتا۔ "
-            "کیا وہ بحفاظت منزل تک پہنچ پائے گا؟"
-        ),
-        "scenes": [
-            ("narrow mountain road landscape", "A road winds through towering mountains."),
-            ("mountain road deep valley", "A deep valley lies beside the road."),
-            ("car driving mountain road", "A driver carefully moves forward."),
-            ("foggy mountain highway", "Suddenly, thick fog covers the road."),
-            ("winding mountain road mist", "The road disappears into the mist."),
-            ("mountain road sunrise", "At last, the road opens ahead.")
-        ]
-    },
-    {
-        "title": "The Hidden Paradise in the Mountains",
-        "narration": (
-            "ایک سیاح پہاڑوں میں سفر کر رہا تھا۔ "
-            "اچانک اسے ایک تنگ راستہ نظر آیا۔ "
-            "وہ راستے پر چلتا ہوا ایک خوبصورت وادی میں پہنچ گیا۔ "
-            "وہاں صاف پانی، سبز میدان اور بلند پہاڑ تھے۔ "
-            "اس نے ایسی خوبصورتی پہلے کبھی نہیں دیکھی تھی۔ "
-            "دنیا میں آج بھی کئی ایسی جگہیں ہیں جو انسانوں کی نظروں سے چھپی ہوئی ہیں۔"
-        ),
-        "scenes": [
-            ("green mountain landscape", "A traveler explores the mountains."),
-            ("mountain hiking trail", "A hidden trail leads deeper into the hills."),
-            ("beautiful alpine valley", "A breathtaking valley appears."),
-            ("clear river green meadow", "Crystal-clear water flows through the valley."),
-            ("snow capped mountains", "Snow-covered peaks surround the paradise."),
-            ("sunrise mountain valley", "Some beautiful places remain undiscovered.")
-        ]
-    }
+    {"title":"Tom & Jerry Urdu Cartoon EP 01 | The Great Cheese Chase","tags":["Tom and Jerry","Urdu cartoon","funny cat and mouse","animated comedy","cartoon shorts"],"scenes":[
+        ("جیری نے میز پر رکھا پنیر دیکھا اور چپکے سے اس کی طرف بڑھا۔","Jerry spots a delicious piece of cheese and sneaks closer."),
+        ("ٹام نے اسے دیکھ لیا اور خاموشی سے جیری کے پیچھے چل پڑا۔","Tom notices Jerry and quietly follows him."),
+        ("جیری نے پنیر اٹھایا تو ٹام نے اچانک چھلانگ لگا دی۔","Jerry grabs the cheese just as Tom makes a surprise leap."),
+        ("جیری تیزی سے بھاگا اور ٹام اس کے پیچھے دوڑ پڑا۔","Jerry races away and Tom charges after him."),
+        ("ٹام پھسل کر گھومتا ہوا نرم گھاس میں جا گرا۔","Tom slips, spins around and lands in the soft grass."),
+        ("جیری پنیر لے کر ہنستا ہوا نکل گیا اور ٹام حیران رہ گیا۔","Jerry escapes with the cheese while Tom looks completely puzzled.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 02 | The Sneaky Mouse Trick","tags":["Tom and Jerry","Urdu funny cartoon","mouse trick","cat chase","3D animation"],"scenes":[
+        ("جیری نے ٹام کے جوتے کے پاس ایک چھوٹا سا پنیر رکھ دیا۔","Jerry leaves a tiny cheese piece beside Tom's foot."),
+        ("ٹام نے پنیر دیکھا اور خوشی سے اسے اٹھانے لگا۔","Tom spots the cheese and reaches for it."),
+        ("جیری نے ڈوری کھینچی اور ٹام کا پاؤں اوپر اٹھ گیا۔","Jerry pulls a string and Tom's foot pops into the air."),
+        ("ٹام توازن کھو بیٹھا اور ایک طرف لڑکھڑانے لگا۔","Tom loses his balance and wobbles from side to side."),
+        ("جیری ہنستا ہوا باہر نکلا مگر خود بھی پنیر پر پھسل گیا۔","Jerry laughs, then slips on the cheese himself."),
+        ("دونوں ایک دوسرے کو دیکھتے رہے اور پھر شرارت سے مسکرا دیے۔","They stare at each other, then share a mischievous grin.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 03 | The Runaway Cheese Cart","tags":["Tom and Jerry","Urdu cartoon story","funny chase","3D cartoon","kids entertainment"],"scenes":[
+        ("ٹام نے پنیر کا بڑا ٹکڑا اٹھایا اور اسے چھپانے لگا۔","Tom picks up a giant piece of cheese and tries to hide it."),
+        ("جیری نے پنیر کو پہیوں والی چھوٹی گاڑی پر رکھ دیا۔","Jerry places the cheese on a tiny toy cart."),
+        ("گاڑی تیزی سے چل پڑی اور جیری اس کے پیچھے بھاگا۔","The cart rolls away and Jerry races after it."),
+        ("ٹام بھی پنیر پکڑنے کے لیے پوری رفتار سے دوڑا۔","Tom sprints after the runaway cheese."),
+        ("گاڑی ایک جھاڑی سے ٹکرائی اور پنیر ہوا میں اچھل گیا۔","The cart hits a bush and the cheese flies into the air."),
+        ("پنیر دونوں کے درمیان گرا اور دونوں اسے پکڑنے کو لپکے۔","The cheese lands between them and both leap for it at once.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 04 | The Balloon Escape","tags":["Tom and Jerry","balloon prank","Urdu cartoon","funny animation","shorts"],"scenes":[
+        ("جیری نے رنگین غبارہ دیکھا اور اسے اپنے ساتھ باندھ لیا۔","Jerry finds a bright balloon and ties it to himself."),
+        ("ٹام نے جیری کو پکڑنے کے لیے دوڑ لگائی۔","Tom starts running to catch Jerry."),
+        ("غبارہ جیری کو ہوا میں اوپر اٹھانے لگا۔","The balloon begins lifting Jerry into the air."),
+        ("ٹام نے غبارے کی ڈوری پکڑ لی اور خود بھی اوپر کھنچ گیا۔","Tom grabs the string and gets pulled upward too."),
+        ("دونوں درخت کی شاخ کے پاس گھومنے لگے۔","The two spin around beside a tree branch."),
+        ("غبارہ پھٹ گیا اور دونوں نرم گھاس پر آ گرے۔","The balloon pops and both tumble onto the soft grass.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 05 | The Tiny Drum","tags":["Tom and Jerry","funny drum","Urdu animation","cartoon comedy","family shorts"],"scenes":[
+        ("جیری کو ایک ننھا ڈھول ملا اور اس نے بجانا شروع کر دیا۔","Jerry finds a tiny drum and starts playing it."),
+        ("آواز سن کر ٹام نیند سے جاگ گیا۔","The noise wakes Tom from his nap."),
+        ("ٹام نے ڈھول پکڑنے کی کوشش کی مگر جیری بھاگ نکلا۔","Tom tries to grab the drum, but Jerry darts away."),
+        ("جیری نے ڈھول بجایا تو ٹام کے قدم خود بخود ناچنے لگے۔","Jerry beats the drum and Tom's feet start dancing."),
+        ("ٹام گھومتا رہا اور جھاڑی میں جا گرا۔","Tom spins around and tumbles into a bush."),
+        ("جیری نے آخری تھاپ لگائی اور ٹام نے حیرت سے اسے دیکھا۔","Jerry plays one final beat as Tom stares in disbelief.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 06 | The Fishing Trouble","tags":["Tom and Jerry","fishing comedy","Urdu cartoon","cat mouse chase","animated shorts"],"scenes":[
+        ("جیری نے تالاب کے کنارے مچھلی پکڑنے کی چھڑی دیکھی۔","Jerry spots a fishing rod beside the pond."),
+        ("ٹام نے چھڑی اٹھائی اور جیری کو چارہ دکھایا۔","Tom picks it up and shows Jerry the bait."),
+        ("جیری نے چارہ کھینچا تو ٹام کا توازن بگڑ گیا۔","Jerry tugs the bait and throws Tom off balance."),
+        ("ٹام پانی میں گرنے سے بچنے کے لیے اچھلا۔","Tom jumps to avoid falling into the water."),
+        ("چھڑی گھوم کر ٹام کے گرد لپٹ گئی۔","The fishing line spins around Tom."),
+        ("جیری محفوظ جگہ بیٹھ کر ہنسنے لگا۔","Jerry sits safely nearby and laughs.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 07 | The Sleepy Cat","tags":["Tom and Jerry","sleepy cat","Urdu cartoon","funny mouse","3D comedy"],"scenes":[
+        ("ٹام درخت کے نیچے مزے سے سو رہا تھا۔","Tom is sleeping peacefully under a tree."),
+        ("جیری نے آہستہ سے ٹام کی دم کے پاس گھنٹی رکھ دی۔","Jerry quietly places a bell near Tom's tail."),
+        ("ہوا چلی تو گھنٹی زور سے بجنے لگی۔","A breeze makes the bell ring loudly."),
+        ("ٹام گھبرا کر اچھلا اور ادھر ادھر دیکھنے لگا۔","Tom jumps up in surprise and looks around."),
+        ("جیری پتوں کے پیچھے چھپ کر ہنستا رہا۔","Jerry hides behind the leaves and giggles."),
+        ("ٹام نے جیری کو دیکھ لیا اور دوبارہ دوڑ شروع ہو گئی۔","Tom spots Jerry and the chase begins again.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 08 | The Magic Hat","tags":["Tom and Jerry","magic hat prank","Urdu cartoon","funny animation","shorts"],"scenes":[
+        ("جیری کو ایک بڑا جادوئی ٹوپی نما ڈبہ ملا۔","Jerry discovers a mysterious magician's hat."),
+        ("ٹام نے اندر جھانکا تو جیری غائب ہو گیا۔","Tom peeks inside and Jerry disappears."),
+        ("جیری ٹام کے پیچھے سے باہر نکلا اور اسے چونکا دیا۔","Jerry pops out behind Tom and gives him a fright."),
+        ("ٹام نے ٹوپی اٹھائی تو اس میں سے رنگین گیندیں نکلیں۔","Tom lifts the hat and colorful balls spill out."),
+        ("گیندیں ٹام کے پیروں کے نیچے آ گئیں اور وہ پھسل گیا۔","The balls roll under Tom's feet and he slips."),
+        ("جیری نے ٹوپی پہن کر فاتحانہ انداز میں سلام کیا۔","Jerry wears the hat and gives a triumphant little bow.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 09 | The Garden Race","tags":["Tom and Jerry","garden race","Urdu cartoon","funny chase","family animation"],"scenes":[
+        ("جیری نے باغ میں ایک سرخ کھلونا گاڑی دیکھی۔","Jerry finds a little red toy car in the garden."),
+        ("وہ گاڑی میں بیٹھا اور تیزی سے آگے نکل گیا۔","He hops in and zooms away."),
+        ("ٹام نے دوڑ کر گاڑی کا پیچھا شروع کر دیا۔","Tom runs after the speeding toy car."),
+        ("گاڑی پھولوں کے گملوں کے درمیان سے گزری۔","The car zigzags between flower pots."),
+        ("ٹام نے چھلانگ لگائی مگر خالی ٹوکری میں جا گرا۔","Tom leaps but lands inside an empty basket."),
+        ("جیری گاڑی روک کر ٹام کو دیکھ کر ہنسنے لگا۔","Jerry stops the car and laughs at Tom.")]},
+    {"title":"Tom & Jerry Urdu Cartoon EP 10 | The Picnic Surprise","tags":["Tom and Jerry","picnic surprise","Urdu cartoon","funny cat mouse","cartoon shorts"],"scenes":[
+        ("جیری نے پکنک کی ٹوکری میں مزیدار سینڈوچ دیکھا۔","Jerry spots a tasty sandwich in a picnic basket."),
+        ("ٹام نے ٹوکری اپنے پاس کھینچ لی۔","Tom pulls the basket closer to himself."),
+        ("جیری نے چپکے سے ٹوکری کا ڈھکن کھولا۔","Jerry quietly lifts the basket lid."),
+        ("ایک سیب لڑھکا اور ٹام اس کے پیچھے بھاگا۔","An apple rolls away and Tom chases it."),
+        ("سیب ٹام کے سر سے ٹکرا کر واپس ٹوکری میں جا گرا۔","The apple bounces off Tom's head and lands back in the basket."),
+        ("جیری نے سینڈوچ اٹھایا اور دونوں نے پکنک بانٹ لی۔","Jerry grabs the sandwich and the two end up sharing the picnic.")]}
 ]
 
 
-# ==========================================
-# GENERAL HELPERS
-# ==========================================
-
 def run_command(command):
-    subprocess.run(
-        command,
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
+    subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
 
-def get_duration(file_path):
+def get_duration(path):
     result = subprocess.run(
-        [
-            "ffprobe", "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            str(file_path)
-        ],
-        check=True,
-        capture_output=True,
-        text=True
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+         "-of", "default=noprint_wrappers=1:nokey=1", str(path)],
+        check=True, capture_output=True, text=True
     )
     return float(result.stdout.strip())
 
 
 def clean_text(value):
-    """Remove HTML tags and unsafe characters from metadata."""
     value = html.unescape(str(value or ""))
     value = re.sub(r"<[^>]*>", " ", value)
     value = re.sub(r"\s+", " ", value)
-    value = "".join(
-        char for char in value
-        if char.isprintable() and char not in "\x00"
-    )
-    return value.strip()
+    return "".join(ch for ch in value if ch.isprintable() and ch not in "\x00").strip()
 
 
-# ==========================================
-# WIKIMEDIA PHOTO SEARCH
-# ==========================================
-
-def request_with_retry(url, *, params=None, timeout=60, stream=False, attempts=6):
-    """Retry temporary Wikimedia/network throttling with exponential backoff."""
-    last_error = None
-    for attempt in range(attempts):
-        try:
-            response = requests.get(
-                url, headers=HEADERS, params=params, timeout=timeout,
-                stream=stream
-            )
-            if response.status_code == 429 or response.status_code in (500, 502, 503, 504):
-                retry_after = response.headers.get("Retry-After", "")
-                wait = min(90, 8 * (2 ** attempt))
-                try:
-                    wait = max(wait, min(90, int(retry_after)))
-                except (TypeError, ValueError):
-                    try:
-                        retry_date = parsedate_to_datetime(retry_after)
-                        wait = max(wait, min(90, (retry_date - datetime.now(timezone.utc)).total_seconds()))
-                    except Exception:
-                        pass
-                response.close()
-                if attempt == attempts - 1:
-                    raise requests.HTTPError(f"HTTP {response.status_code} after {attempts} attempts")
-                print(f"Temporary server limit ({response.status_code}). Waiting {int(wait)} seconds...")
-                time.sleep(wait)
-                continue
-            response.raise_for_status()
-            return response
-        except (requests.Timeout, requests.ConnectionError) as exc:
-            last_error = exc
-            if attempt == attempts - 1:
-                break
-            wait = min(90, 5 * (2 ** attempt))
-            print(f"Network issue. Retrying in {wait} seconds...")
-            time.sleep(wait)
-    if last_error:
-        raise last_error
-    raise RuntimeError(f"Could not fetch {url}")
+def load_font(size, bold=False):
+    candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf" if bold else
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf"
+    ]
+    for candidate in candidates:
+        if Path(candidate).exists():
+            return ImageFont.truetype(candidate, size)
+    return ImageFont.load_default()
 
 
-def search_wikimedia(query, used_ids):
-    params = {
-        "action": "query", "generator": "search",
-        "gsrsearch": f"filetype:bitmap {query}",
-        "gsrnamespace": 6, "gsrlimit": 50,
-        "prop": "imageinfo", "iiprop": "url|extmetadata",
-        "iiurlwidth": 1600, "format": "json"
-    }
-    response = request_with_retry(WIKIMEDIA_API, params=params, timeout=60)
-    pages = response.json().get("query", {}).get("pages", {})
-    candidates = []
-    for page in pages.values():
-        photo_id = page.get("pageid")
-        if photo_id in used_ids:
-            continue
-        info = page.get("imageinfo", [{}])[0]
-        metadata = info.get("extmetadata", {})
-        license_name = clean_text(metadata.get("LicenseShortName", {}).get("value", "")).lower()
-        accepted = ("cc0" in license_name or "public domain" in license_name or
-                    license_name.startswith("cc by") or "cc by " in license_name)
-        image_url = info.get("thumburl") or info.get("url")
-        if accepted and image_url:
-            candidates.append({
-                "id": photo_id, "url": image_url,
-                "title": clean_text(page.get("title", "Untitled image")),
-                "license": clean_text(license_name),
-                "license_url": clean_text(metadata.get("LicenseUrl", {}).get("value", "")),
-                "artist": clean_text(metadata.get("Artist", {}).get("value", "Unknown")),
-                "source": clean_text(info.get("descriptionurl", ""))
-            })
-    random.shuffle(candidates)
-    return candidates
+def gradient_background(scene_no):
+    palettes = [
+        ((18, 45, 76), (103, 169, 151)),
+        ((22, 53, 87), (190, 139, 103)),
+        ((24, 64, 89), (112, 174, 159)),
+        ((38, 65, 91), (201, 158, 112)),
+        ((25, 56, 83), (125, 166, 143)),
+        ((17, 37, 70), (93, 117, 159))
+    ]
+    top, bottom = palettes[(scene_no - 1) % len(palettes)]
+    im = Image.new("RGB", (WIDTH, HEIGHT))
+    px = im.load()
+    for y in range(HEIGHT):
+        t = y / (HEIGHT - 1)
+        # Smooth vertical color blend.
+        t = t * t * (3 - 2 * t)
+        c = tuple(int(top[i] * (1-t) + bottom[i] * t) for i in range(3))
+        for x in range(WIDTH):
+            px[x, y] = c
+    return im
 
 
-def make_fallback_image(destination, scene_number):
-    """Create a valid cinematic gradient image if all photo sources fail."""
-    from PIL import ImageDraw
-    image = Image.new("RGB", (1080, 1920))
-    pixels = image.load()
-    for y in range(1920):
-        t = y / 1919
-        color = (int(5 + 12*t), int(28 + 35*t), int(48 + 55*t))
-        for x in range(1080):
-            pixels[x, y] = color
-    draw = ImageDraw.Draw(image)
-    draw.ellipse((180, 450, 900, 1170), outline=(100, 160, 190), width=5)
-    draw.text((70, 1660), f"NATURE • SCENE {scene_number}", fill=(235, 245, 250))
-    image.save(destination, "JPEG", quality=90)
-    with CREDITS_FILE.open("a", encoding="utf-8") as f:
-        f.write(f"Scene {scene_number}: Original generated gradient background (no external photo)\n\n")
-    print(f"Scene {scene_number}: using built-in fallback background.")
-    return destination
+def draw_cloud(draw, x, y, scale=1.0):
+    col = (235, 240, 232)
+    draw.ellipse((x, y+25*scale, x+100*scale, y+80*scale), fill=col)
+    draw.ellipse((x+35*scale, y, x+115*scale, y+80*scale), fill=col)
+    draw.ellipse((x+75*scale, y+20*scale, x+155*scale, y+80*scale), fill=col)
 
 
-def generate_image(query, scene_number, used_photo_ids):
-    print(f"Searching Wikimedia: {query}")
-    destination = SCENES_DIR / f"scene_{scene_number}.jpg"
-    queries = [query, " ".join(query.split()[:3]), "nature landscape"]
-    tried = set()
-    for search_query in queries:
-        try:
-            candidates = search_wikimedia(search_query, used_photo_ids)
-        except Exception as exc:
-            print(f"Wikimedia search issue for '{search_query}': {exc}")
-            continue
-        for photo in candidates:
-            if photo["id"] in tried:
-                continue
-            tried.add(photo["id"])
-            try:
-                print(f"Trying photo: {photo['title']}")
-                response = request_with_retry(photo["url"], timeout=90, attempts=6)
-                content_type = response.headers.get("Content-Type", "").lower()
-                if content_type and not content_type.startswith("image/"):
-                    raise ValueError(f"Unexpected content type: {content_type}")
-                temp_path = destination.with_suffix(".download")
-                temp_path.write_bytes(response.content)
-                with Image.open(temp_path) as im:
-                    im.verify()
-                with Image.open(temp_path) as im:
-                    if im.width < 500 or im.height < 500:
-                        raise ValueError("Image resolution below 500 pixels")
-                    im.convert("RGB").save(destination, "JPEG", quality=94)
-                temp_path.unlink(missing_ok=True)
-                used_photo_ids.add(photo["id"])
-                with CREDITS_FILE.open("a", encoding="utf-8") as f:
-                    f.write(
-                        f"Scene {scene_number}: {photo['title']}\n"
-                        f"Creator: {photo['artist']}\n"
-                        f"License: {photo['license']}\n"
-                        f"License URL: {photo['license_url']}\n"
-                        f"Source: {photo['source']}\n\n"
-                    )
-                print(f"Scene {scene_number} photo downloaded.")
-                return destination
-            except Exception as exc:
-                print(f"Photo failed; trying another candidate: {exc}")
-                destination.with_suffix(".download").unlink(missing_ok=True)
-                continue
-    return make_fallback_image(destination, scene_number)
+def draw_landscape(draw, scene_no):
+    # Distant mountain layers create depth for the slow camera movement.
+    draw.polygon([(0, 790), (210, 440), (420, 790), (650, 390), (930, 800), (1080, 570), (1080, 1300), (0, 1300)], fill=(75, 111, 127))
+    draw.polygon([(0, 1000), (260, 620), (520, 1030), (790, 610), (1080, 990), (1080, 1450), (0, 1450)], fill=(48, 91, 94))
+    draw.polygon([(0, 1120), (260, 930), (540, 1150), (830, 900), (1080, 1120), (1080, 1920), (0, 1920)], fill=(34, 83, 70))
+    draw_cloud(draw, 110, 260, 1.05)
+    draw_cloud(draw, 720, 330, 0.72)
+    # Sun/moon glow.
+    sun_color = (255, 218, 148) if scene_no % 3 else (246, 231, 194)
+    draw.ellipse((760, 180, 930, 350), fill=sun_color)
+    # Forest trees at both edges.
+    for x, h in [(35, 460), (160, 340), (900, 430), (1010, 540)]:
+        base = 1330
+        draw.rectangle((x+42, base-h//3, x+68, base+120), fill=(91, 58, 43))
+        draw.polygon([(x, base-h), (x+55, base-h-100), (x+112, base-h)], fill=(28, 105, 77))
+        draw.polygon([(x+5, base-h+115), (x+55, base-h+10), (x+108, base-h+115)], fill=(35, 125, 82))
+    # Winding path / river changes by episode scene.
+    if scene_no in (2, 4, 6):
+        draw.polygon([(380, 1920), (570, 1920), (640, 1370), (480, 1190), (530, 1110), (720, 1920)], fill=(65, 139, 161))
+        draw.line([(490, 1920), (540, 1470), (540, 1300)], fill=(166, 213, 211), width=12)
+    else:
+        draw.polygon([(0, 1920), (0, 1540), (340, 1380), (710, 1470), (1080, 1370), (1080, 1920)], fill=(91, 112, 76))
+        draw.polygon([(420, 1920), (670, 1920), (610, 1510), (490, 1430)], fill=(167, 139, 103))
 
 
-def generate_all_images(story):
-    used_photo_ids = set()
-    image_files = []
-    if CREDITS_FILE.exists():
-        CREDITS_FILE.unlink()
-    for number, scene in enumerate(story["scenes"], start=1):
-        image_files.append(generate_image(scene[0], number, used_photo_ids))
-        # Small pause between scenes reduces Wikimedia request pressure.
-        time.sleep(2)
-    return image_files
+def draw_ayan(draw, x=360, y=1130, scale=1.0, pose=0):
+    # Red backpack, teal jacket, navy trousers, friendly face.
+    def box(coords): return tuple(int(v*scale) for v in coords)
+    draw.ellipse((x-65*scale, y+450*scale, x+160*scale, y+500*scale), fill=(22, 53, 48))
+    # backpack behind body
+    draw.rounded_rectangle((x-58*scale, y+115*scale, x+75*scale, y+330*scale), radius=int(35*scale), fill=AYAN["backpack"], outline=(112, 39, 39), width=max(2,int(5*scale)))
+    # legs
+    draw.polygon([(x-25*scale,y+330*scale),(x+45*scale,y+330*scale),(x+35*scale,y+455*scale),(x-10*scale,y+455*scale)], fill=(37,54,82))
+    draw.polygon([(x+38*scale,y+330*scale),(x+95*scale,y+330*scale),(x+115*scale,y+450*scale),(x+65*scale,y+455*scale)], fill=(37,54,82))
+    draw.ellipse((x-22*scale,y+435*scale,x+45*scale,y+478*scale), fill=(48,42,39))
+    draw.ellipse((x+62*scale,y+435*scale,x+135*scale,y+478*scale), fill=(48,42,39))
+    # torso and arms
+    draw.rounded_rectangle((x-48*scale,y+125*scale,x+100*scale,y+355*scale), radius=int(42*scale), fill=AYAN["jacket"], outline=(13,79,91), width=max(2,int(5*scale)))
+    draw.line((x-35*scale,y+180*scale,x-78*scale,y+330*scale), fill=(199,139,101), width=max(18,int(34*scale)))
+    arm_end = (x+150*scale,y+210*scale) if pose % 2 == 0 else (x+120*scale,y+335*scale)
+    draw.line((x+78*scale,y+180*scale,arm_end[0],arm_end[1]), fill=(199,139,101), width=max(18,int(34*scale)))
+    # neck and head
+    draw.rectangle((x+4*scale,y+82*scale,x+52*scale,y+150*scale), fill=(190,128,92))
+    draw.ellipse((x-22*scale,y-40*scale,x+105*scale,y+112*scale), fill=(204,145,108), outline=(112,72,55), width=max(2,int(4*scale)))
+    draw.pieslice((x-28*scale,y-55*scale,x+110*scale,y+85*scale), 180, 360, fill=(48,37,34))
+    draw.ellipse((x+66*scale,y+22*scale,x+78*scale,y+37*scale), fill=(28,32,35))
+    draw.arc((x+40*scale,y+48*scale,x+85*scale,y+82*scale), 5, 150, fill=(90,48,43), width=max(2,int(3*scale)))
 
 
-# ==========================================
-# URDU VOICE
-# ==========================================
-
-async def generate_voice(text):
-    print("Generating Urdu voice-over...")
-
-    communicate = edge_tts.Communicate(
-        text=text,
-        voice=VOICE,
-        rate="-5%",
-        volume="+0%"
-    )
-
-    await communicate.save(str(VOICE_FILE))
-
-    if not VOICE_FILE.exists() or VOICE_FILE.stat().st_size < 1000:
-        raise RuntimeError("Voice generation failed.")
-
-    print("Urdu voice-over ready.")
-
-
-# ==========================================
-# ENGLISH SUBTITLES
-# ==========================================
-
-def make_subtitles(story, total_duration):
-    scene_duration = total_duration / len(story["scenes"])
-
-    def stamp(seconds):
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        secs = int(seconds % 60)
-        millis = int((seconds - int(seconds)) * 1000)
-
-        return (
-            f"{hours:02}:{minutes:02}:"
-            f"{secs:02},{millis:03}"
-        )
-
-    lines = []
-
-    for index, scene in enumerate(story["scenes"]):
-        start = index * scene_duration
-        end = min((index + 1) * scene_duration, total_duration)
-
-        lines.append(
-            f"{index + 1}\n"
-            f"{stamp(start)} --> {stamp(end)}\n"
-            f"{scene[1]}\n"
-        )
-
-    SUBTITLE_FILE.write_text(
-        "\n".join(lines),
-        encoding="utf-8"
-    )
+def draw_coco(draw, x=650, y=1390, scale=0.82, pose=0):
+    # Same orange fox silhouette in every scene.
+    draw.ellipse((x-65*scale,y+130*scale,x+115*scale,y+220*scale), fill=(27,55,45))
+    # large fluffy tail
+    draw.ellipse((x+65*scale,y+35*scale,x+235*scale,y+170*scale), fill=COCO["fur"], outline=(151,74,35), width=max(2,int(4*scale)))
+    draw.ellipse((x+170*scale,y+90*scale,x+245*scale,y+155*scale), fill=COCO["cream"])
+    # body
+    draw.ellipse((x-70*scale,y+55*scale,x+115*scale,y+190*scale), fill=COCO["fur"], outline=(151,74,35), width=max(2,int(4*scale)))
+    draw.ellipse((x-5*scale,y+90*scale,x+65*scale,y+175*scale), fill=COCO["cream"])
+    # head and ears
+    draw.polygon([(x-55*scale,y+65*scale),(x-48*scale,y-65*scale),(x+15*scale,y+25*scale)], fill=COCO["fur"], outline=(151,74,35))
+    draw.polygon([(x+45*scale,y+25*scale),(x+110*scale,y-65*scale),(x+115*scale,y+75*scale)], fill=COCO["fur"], outline=(151,74,35))
+    draw.polygon([(x-38*scale,y+25*scale),(x-43*scale,y-28*scale),(x-8*scale,y+22*scale)], fill=(246,174,151))
+    draw.polygon([(x+68*scale,y+23*scale),(x+103*scale,y-28*scale),(x+94*scale,y+44*scale)], fill=(246,174,151))
+    draw.ellipse((x-70*scale,y+5*scale,x+125*scale,y+135*scale), fill=COCO["fur"], outline=(151,74,35), width=max(2,int(4*scale)))
+    draw.ellipse((x-50*scale,y+72*scale,x+108*scale,y+137*scale), fill=COCO["cream"])
+    draw.ellipse((x-23*scale,y+45*scale,x-8*scale,y+63*scale), fill=(35,31,29))
+    draw.ellipse((x+48*scale,y+45*scale,x+63*scale,y+63*scale), fill=(35,31,29))
+    draw.ellipse((x+9*scale,y+87*scale,x+30*scale,y+103*scale), fill=(45,34,31))
 
 
-# ==========================================
-# CREATE SCENE VIDEOS
-# ==========================================
-
-def create_scene_clips(image_files, total_duration):
-    clip_duration = total_duration / len(image_files)
-    clip_files = []
-
-    for index, image_path in enumerate(image_files, start=1):
-        clip_path = OUTPUT_DIR / f"clip_{index}.mp4"
-        frames = max(1, int(clip_duration * FPS))
-
-        video_filter = (
-            f"scale={WIDTH}:{HEIGHT}:"
-            "force_original_aspect_ratio=increase,"
-            f"crop={WIDTH}:{HEIGHT},"
-            "setsar=1,"
-            f"zoompan=z='min(zoom+0.0008,1.08)':"
-            "x='iw/2-(iw/zoom/2)':"
-            "y='ih/2-(ih/zoom/2)':"
-            f"d={frames}:s={WIDTH}x{HEIGHT}:fps={FPS},"
-            "format=yuv420p"
-        )
-
-        run_command([
-            "ffmpeg", "-y",
-            "-loop", "1",
-            "-i", str(image_path),
-            "-vf", video_filter,
-            "-t", str(clip_duration),
-            "-r", str(FPS),
-            "-an",
-            "-c:v", "libx264",
-            "-preset", "veryfast",
-            "-pix_fmt", "yuv420p",
-            str(clip_path)
-        ])
-
-        clip_files.append(clip_path)
-        print(f"Scene video {index}/{len(image_files)} created.")
-
-    return clip_files
+def wrap_lines(text, font, max_width, draw):
+    words = text.split()
+    lines, current = [], ""
+    for word in words:
+        test = (current + " " + word).strip()
+        if draw.textbbox((0,0), test, font=font)[2] <= max_width:
+            current = test
+        else:
+            if current:
+                lines.append(current)
+            current = word
+    if current:
+        lines.append(current)
+    return lines
 
 
-# ==========================================
-# JOIN CLIPS
-# ==========================================
+def render_scene(scene_no, caption, story_title):
+    im = gradient_background(scene_no)
+    draw = ImageDraw.Draw(im)
+    draw_landscape(draw, scene_no)
+    # Small glowing fireflies / story sparkles.
+    random.seed(scene_no * 71)
+    for _ in range(22):
+        x, y = random.randint(40, 1040), random.randint(420, 1180)
+        r = random.randint(3, 8)
+        draw.ellipse((x-r,y-r,x+r,y+r), fill=(255, 232, 151))
+    draw_ayan(draw, x=340 if scene_no % 2 else 385, y=1130, scale=1.0, pose=scene_no)
+    draw_coco(draw, x=660 if scene_no % 2 else 690, y=1400, scale=0.82, pose=scene_no)
+    # English subtitles are burned in later from the timed SRT file.
+    # Keep the artwork clean so captions are not duplicated.
+    # Small episode label.
+    small = load_font(26, bold=True)
+    draw.text((58,80), "TOM  +  JERRY   •   URDU CARTOON", font=small, fill=(255,248,221))
+    return im
 
-def join_clips(clip_files):
-    lines = []
 
-    for clip in clip_files:
-        safe_path = str(clip.resolve()).replace("'", "'\\''")
-        lines.append(f"file '{safe_path}'")
+async def create_voice_segment(text, destination):
+    tts = edge_tts.Communicate(text=text, voice=VOICE, rate="-3%", volume="+0%")
+    await tts.save(str(destination))
+    if not destination.exists() or destination.stat().st_size < 700:
+        raise RuntimeError(f"Voice segment failed: {destination.name}")
 
-    CONCAT_FILE.write_text(
-        "\n".join(lines),
-        encoding="utf-8"
-    )
 
-    silent_video = OUTPUT_DIR / "silent_video.mp4"
+def timestamp(seconds):
+    ms = int(round(seconds * 1000))
+    hours, ms = divmod(ms, 3600000)
+    minutes, ms = divmod(ms, 60000)
+    secs, ms = divmod(ms, 1000)
+    return f"{hours:02}:{minutes:02}:{secs:02},{ms:03}"
 
+
+def make_subtitles(story, durations):
+    offset = 0.0
+    entries = []
+    for i, ((urdu, english), duration) in enumerate(zip(story["scenes"], durations), start=1):
+        start = max(0, offset + 0.05)
+        end = max(start + 0.5, offset + duration - 0.05)
+        entries.append(f"{i}\n{timestamp(start)} --> {timestamp(end)}\n{english}\n")
+        offset += duration
+    SUBTITLE_FILE.write_text("\n".join(entries), encoding="utf-8")
+
+
+
+def render_animated_scene_clip(duration, number, scene_index, story_index, story_title):
+    """
+    Render real frame-to-frame character movement (not a zoom on one still).
+    Artwork is procedural and locally generated; no paid image API is used.
+    """
+    frame_rate = 12
+    frame_count = max(2, int(math.ceil(duration * frame_rate)))
+    base = gradient_background(scene_index)
+    base_draw = ImageDraw.Draw(base)
+    draw_landscape(base_draw, scene_index)
+    label_font = load_font(26, bold=True)
+    base_draw.text((58, 80), "AYAN  +  COCO   •   URDU STORY", font=label_font, fill=(255, 248, 221))
+
+    for frame_no in range(frame_count):
+        progress = frame_no / max(1, frame_count - 1)
+        phase = progress * math.tau
+        frame = base.copy()
+        draw = ImageDraw.Draw(frame)
+
+        # Ayan walks forward across the trail; alternating arm pose and body bob
+        # make the movement visible from frame to frame.
+        ayan_x = 340 + int(115 * math.sin(progress * math.pi * 1.35))
+        ayan_y = 1110 + int(18 * math.sin(phase * 2))
+        ayan_pose = frame_no % 2
+        draw_ayan(draw, x=ayan_x, y=ayan_y, scale=1.0, pose=ayan_pose)
+
+        # Coco bounds alongside Ayan, with a little hop on each stride.
+        coco_x = 655 + int(135 * math.sin(progress * math.pi * 1.6 + 0.7))
+        coco_y = 1390 - int(38 * abs(math.sin(phase * 1.5)))
+        draw_coco(draw, x=coco_x, y=coco_y, scale=0.82, pose=frame_no % 2)
+
+        # Moving dust/sparkles follow their footsteps.
+        for puff in range(3):
+            px = (ayan_x - 25 + puff * 27 + frame_no * 13) % WIDTH
+            py = 1570 + int(12 * math.sin(phase + puff))
+            radius = 5 + (puff % 2) * 3
+            draw.ellipse((px-radius, py-radius, px+radius, py+radius), fill=(235, 218, 165))
+
+        # A story moment in every episode: a small glowing clue travels ahead.
+        clue_x = int(160 + ((progress * 760 + scene_index * 83) % 760))
+        clue_y = 980 + int(22 * math.sin(phase * 2))
+        glow = 13 + int(4 * (0.5 + 0.5 * math.sin(phase * 3)))
+        draw.ellipse((clue_x-glow, clue_y-glow, clue_x+glow, clue_y+glow), fill=(255, 226, 133))
+        draw.ellipse((clue_x-4, clue_y-4, clue_x+4, clue_y+4), fill=(255, 255, 226))
+
+        # Episode-specific animated action prop in the rescue/reunion scene.
+        if scene_index == 4 and story_index == 0:
+            bird_x = int(160 + progress * 690)
+            bird_y = 900 - int(48 * math.sin(phase * 2))
+            wing = int(18 * math.sin(phase * 5))
+            draw.ellipse((bird_x-28, bird_y-14, bird_x+28, bird_y+14), fill=(245, 224, 177))
+            draw.polygon([(bird_x+20,bird_y),(bird_x+45,bird_y-8),(bird_x+45,bird_y+8)], fill=(232,151,76))
+            draw.arc((bird_x-18,bird_y-30-wing,bird_x+8,bird_y+8), 190, 340, fill=(255,248,220), width=6)
+        elif scene_index == 4 and story_index == 1:
+            turtle_x = int(190 + progress * 650)
+            turtle_y = 1500 + int(8 * math.sin(phase * 3))
+            draw.ellipse((turtle_x-42,turtle_y-28,turtle_x+42,turtle_y+28), fill=(91,145,83), outline=(35,83,61), width=5)
+            draw.ellipse((turtle_x+30,turtle_y-12,turtle_x+58,turtle_y+12), fill=(111,164,91))
+            draw.ellipse((turtle_x+43,turtle_y-7,turtle_x+48,turtle_y-2), fill=(20,35,25))
+        elif scene_index == 4 and story_index == 2:
+            for spark in range(7):
+                sx = int(140 + ((progress * 700 + spark * 113) % 800))
+                sy = 780 + int(55 * math.sin(phase * 2 + spark))
+                draw.ellipse((sx-6,sy-6,sx+6,sy+6), fill=(255,239,151))
+
+        frame_path = SCENES_DIR / f"scene_{number:02}_frame_{frame_no+1:04}.jpg"
+        frame.save(frame_path, "JPEG", quality=88, optimize=True)
+
+    clip_path = OUTPUT_DIR / f"clip_{number}.mp4"
+    pattern = SCENES_DIR / f"scene_{number:02}_frame_%04d.jpg"
     run_command([
-        "ffmpeg", "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", str(CONCAT_FILE),
-        "-c", "copy",
-        str(silent_video)
+        "ffmpeg", "-y", "-framerate", str(frame_rate), "-i", str(pattern),
+        "-vf", f"fps={FPS},scale={WIDTH}:{HEIGHT}:flags=fast_bilinear,format=yuv420p",
+        "-t", f"{duration:.3f}", "-an", "-c:v", "libx264",
+        "-preset", "veryfast", "-crf", "23", "-pix_fmt", "yuv420p",
+        str(clip_path)
     ])
+    # Remove temporary frames after the scene has been encoded.
+    for frame_path in SCENES_DIR.glob(f"scene_{number:02}_frame_*.jpg"):
+        frame_path.unlink()
+    return clip_path
 
-    return silent_video
+def create_scene_clip(image_path, duration, number):
+    clip_path = OUTPUT_DIR / f"clip_{number}.mp4"
+    frames = max(1, int(math.ceil(duration * FPS)))
+    vf = (
+        f"scale={WIDTH}:{HEIGHT}:force_original_aspect_ratio=increase,"
+        f"crop={WIDTH}:{HEIGHT},setsar=1,"
+        f"zoompan=z='min(zoom+0.0007,1.045)':"
+        f"x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+        f"d={frames}:s={WIDTH}x{HEIGHT}:fps={FPS},format=yuv420p"
+    )
+    run_command([
+        "ffmpeg","-y","-loop","1","-i",str(image_path),
+        "-vf",vf,"-t",f"{duration:.3f}","-r",str(FPS),"-an",
+        "-c:v","libx264","-preset","veryfast","-crf","22",
+        "-pix_fmt","yuv420p",str(clip_path)
+    ])
+    return clip_path
 
 
-# ==========================================
-# FINAL VIDEO WITH AUDIO AND SUBTITLES
-# ==========================================
+def join_files(files, list_file, output_file, audio=False):
+    lines = []
+    for item in files:
+        safe = str(item.resolve()).replace("'", "'\\''")
+        lines.append(f"file '{safe}'")
+    list_file.write_text("\n".join(lines), encoding="utf-8")
+    command = ["ffmpeg","-y","-f","concat","-safe","0","-i",str(list_file),"-c","copy",str(output_file)]
+    run_command(command)
+    return output_file
+
 
 def create_final_video(silent_video):
-    print("Adding subtitles and audio...")
-
-    subtitle_path = str(SUBTITLE_FILE.resolve())
-    subtitle_path = subtitle_path.replace("\\", "/")
-    subtitle_path = subtitle_path.replace(":", "\\:")
-
+    subtitle_path = str(SUBTITLE_FILE.resolve()).replace("\\","/").replace(":","\\:")
     subtitle_filter = (
-        f"subtitles='{subtitle_path}':"
-        "force_style='FontName=DejaVu Sans,"
-        "FontSize=20,"
-        "PrimaryColour=&H00FFFFFF,"
-        "OutlineColour=&H00000000,"
-        "BorderStyle=1,"
-        "Outline=2,"
-        "Shadow=1,"
-        "Alignment=2,"
-        "MarginV=150'"
+        f"subtitles='{subtitle_path}':force_style="
+        "'FontName=DejaVu Sans,FontSize=21,PrimaryColour=&H00FFFFFF,"
+        "OutlineColour=&H00101820,BorderStyle=1,Outline=3,Shadow=1,"
+        "Alignment=2,MarginV=145'"
     )
-
+    # A very quiet generated ambient pad; no copyrighted song is used.
     run_command([
-        "ffmpeg", "-y",
-        "-i", str(silent_video),
-        "-i", str(VOICE_FILE),
-        "-f", "lavfi",
-        "-i", "sine=frequency=110:sample_rate=44100",
+        "ffmpeg","-y","-i",str(silent_video),"-i",str(VOICE_FILE),
+        "-f","lavfi","-i","anoisesrc=color=pink:sample_rate=44100:amplitude=0.018",
         "-filter_complex",
-        (
-            f"[0:v]{subtitle_filter}[v];"
-            "[1:a]volume=1.0[voice];"
-            "[2:a]volume=0.035[ambient];"
-            "[voice][ambient]amix=inputs=2:"
-            "duration=first:dropout_transition=2[a]"
-        ),
-        "-map", "[v]",
-        "-map", "[a]",
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-crf", "23",
-        "-c:a", "aac",
-        "-b:a", "192k",
-        "-shortest",
-        "-movflags", "+faststart",
-        str(VIDEO_FILE)
+        f"[0:v]{subtitle_filter}[v];[1:a]volume=1.0[voice];[2:a]lowpass=f=500,volume=0.10[amb];[voice][amb]amix=inputs=2:duration=first:dropout_transition=2[a]",
+        "-map","[v]","-map","[a]","-c:v","libx264","-preset","veryfast",
+        "-crf","22","-c:a","aac","-b:a","160k","-shortest",
+        "-movflags","+faststart",str(VIDEO_FILE)
     ])
+    if not VIDEO_FILE.exists() or VIDEO_FILE.stat().st_size < 15000:
+        raise RuntimeError("Final MP4 was not created correctly.")
 
-    if not VIDEO_FILE.exists() or VIDEO_FILE.stat().st_size < 10000:
-        raise RuntimeError("Final video was not created.")
-
-    print("Final video created successfully.")
-
-
-# ==========================================
-# CLEAN YOUTUBE DESCRIPTION
-# ==========================================
 
 def make_youtube_description(story):
-    title = clean_text(story.get("title", "Nature Adventure"))
-    hashtags = "#Shorts #Nature #Adventure #Mystery #Travel #Wildlife #Explore #UrduStories"
-    description = (
-        f"{title} | A cinematic Urdu nature and adventure short.\n\n"
-        "Discover a world of nature, hidden places, fascinating mysteries and unforgettable adventures. "
-        "Watch till the end and share what you think happened!\n\n"
-        "🎬 Watch more nature and adventure stories.\n"
-        "👍 Like • 💬 Comment • 🔔 Subscribe for more Shorts.\n\n"
-        f"{hashtags}\n\n"
-        "PHOTO CREDITS AND LICENSE INFORMATION\n"
-        "The following source and license details are provided for Wikimedia Commons images used in this video:\n"
-    )
-    if CREDITS_FILE.exists():
-        lines = [clean_text(line) for line in CREDITS_FILE.read_text(encoding="utf-8").splitlines()]
-        description += "\n".join(line for line in lines if line)
-    # YouTube description maximum is 5,000 characters; leave room for safe encoding.
-    description = description[:4500]
-    return "".join(ch for ch in description if ch in "\n\t" or (ord(ch) >= 32 and not 0xD800 <= ord(ch) <= 0xDFFF))
+    tags = " ".join("#" + re.sub(r"[^A-Za-z0-9]", "", t.replace(" ", "")) for t in story["tags"][:5])
+    return (
+        f"{story['title']}\n\n"
+        "Tom & Jerry funny animated cartoon episode with Urdu narration and English subtitles. "
+        "A playful cat-and-mouse comedy adventure for cartoon fans.\n\n"
+        "SERIES: Tom & Jerry Urdu Cartoon Shorts\n"
+        "CATEGORY: Film & Animation\n"
+        "LANGUAGE: Urdu voice + English subtitles\n\n"
+        "Watch the daily episode and follow for more funny cartoon moments!\n\n"
+        f"#TomAndJerry #UrduCartoon #CartoonShorts #FunnyCartoon #Shorts {tags}"
+    )[:4500]
 
 
-# ==========================================
-# YOUTUBE UPLOAD
-# ==========================================
+# ============================================================
+# YOUTUBE OAUTH + UPLOAD
+# Kept compatible with the existing GitHub secrets.
+# ============================================================
 
-def upload_to_youtube(title):
+def upload_to_youtube(title, story):
     print("Preparing YouTube upload...")
-
     client_json = os.getenv("YOUTUBE_CLIENT_JSON")
     refresh_token = os.getenv("YOUTUBE_REFRESH_TOKEN")
-
     if not client_json:
         raise RuntimeError("YOUTUBE_CLIENT_JSON secret is missing.")
-
     if not refresh_token:
         raise RuntimeError("YOUTUBE_REFRESH_TOKEN secret is missing.")
 
     client_data = json.loads(client_json)
-
-    client_info = (
-        client_data.get("installed")
-        or client_data.get("web")
-    )
-
+    client_info = client_data.get("installed") or client_data.get("web")
     if not client_info:
         raise RuntimeError("Invalid YouTube client JSON.")
 
     credentials = Credentials(
         token=None,
         refresh_token=refresh_token,
-        token_uri=client_info.get(
-            "token_uri",
-            "https://oauth2.googleapis.com/token"
-        ),
+        token_uri=client_info.get("token_uri","https://oauth2.googleapis.com/token"),
         client_id=client_info["client_id"],
         client_secret=client_info["client_secret"],
         scopes=["https://www.googleapis.com/auth/youtube.upload"]
     )
-
-    youtube = build(
-        "youtube",
-        "v3",
-        credentials=credentials
-    )
-
-    privacy = os.getenv("YOUTUBE_PRIVACY_STATUS", "private")
-
-    if privacy not in ("private", "unlisted", "public"):
+    youtube = build("youtube","v3",credentials=credentials)
+    privacy = os.getenv("YOUTUBE_PRIVACY_STATUS", PRIVACY_DEFAULT)
+    if privacy not in ("private","unlisted","public"):
         privacy = "private"
-
-    description = make_youtube_description(STORY_IN_USE)
 
     body = {
         "snippet": {
             "title": clean_text(title)[:100],
-            "description": description,
-            "tags": [
-                "nature", "adventure", "mystery", "shorts", "youtube shorts",
-                "travel", "cinematic", "urdu story", "nature facts",
-                "exploration", "wildlife", "beautiful places", "Pakistan travel"
-            ],
-            "categoryId": "22"
+            "description": make_youtube_description(story),
+            "tags": story["tags"] + ["youtube shorts","Tom and Jerry","Urdu voice","English subtitles","animated comedy","family friendly"],
+            "categoryId": "1"
         },
         "status": {
             "privacyStatus": privacy,
             "selfDeclaredMadeForKids": False
         }
     }
-
-    media = MediaFileUpload(
-        str(VIDEO_FILE),
-        mimetype="video/mp4",
-        resumable=True
-    )
-
-    request = youtube.videos().insert(
-        part="snippet,status",
-        body=body,
-        media_body=media
-    )
-
+    media = MediaFileUpload(str(VIDEO_FILE), mimetype="video/mp4", resumable=True)
+    request = youtube.videos().insert(part="snippet,status",body=body,media_body=media)
     response = None
-
-    upload_attempts = 0
+    failures = 0
     while response is None:
         try:
             status, response = request.next_chunk()
-            upload_attempts = 0
+            failures = 0
+            if status:
+                print(f"Upload progress: {int(status.progress()*100)}%")
         except Exception as exc:
-            upload_attempts += 1
-            if upload_attempts >= 5:
+            failures += 1
+            if failures >= 5:
                 raise
-            wait = min(60, 5 * (2 ** (upload_attempts - 1)))
+            wait = min(60, 5 * (2 ** (failures-1)))
             print(f"Upload connection issue: {exc}. Retrying in {wait}s...")
             time.sleep(wait)
 
-        if status:
-            print(
-                f"Upload progress: {int(status.progress() * 100)}%"
-            )
-
     video_id = response.get("id")
-
     print("YouTube upload successful.")
     print("Video ID:", video_id)
     print("Privacy:", privacy)
-    print(
-        "Video URL:",
-        f"https://www.youtube.com/watch?v={video_id}"
-    )
-
-
-# ==========================================
-# MAIN
-# ==========================================
-
-STORY_IN_USE = {}
+    print("Video URL:", f"https://www.youtube.com/watch?v={video_id}")
 
 
 def main():
-    print("\n===================================")
-    print("      NATURE SHORTS AUTOMATION")
-    print("===================================\n")
+    print("\n======================================")
+    print("   TOM & JERRY URDU 3D CARTOON SHORTS")
+    print("======================================\n")
+    # Select a predictable daily episode; manual reruns can use an override.
+    override = os.getenv("STORY_INDEX")
+    if override is not None:
+        story = STORIES[int(override) % len(STORIES)]
+    else:
+        day_number = datetime.now(timezone.utc).date().toordinal()
+        story = STORIES[day_number % len(STORIES)]
+    print("Selected episode:", story["title"])
 
-    run_id = os.getenv("GITHUB_RUN_ID", "local")
-    attempt = os.getenv("GITHUB_RUN_ATTEMPT", "1")
+    for folder in (SCENES_DIR, AUDIO_DIR):
+        for old in folder.glob("*"):
+            if old.is_file():
+                old.unlink()
+    for old in OUTPUT_DIR.glob("clip_*.mp4"):
+        old.unlink()
+    for old in (VIDEO_FILE, VOICE_FILE, SUBTITLE_FILE, CONCAT_FILE, AUDIO_CONCAT_FILE):
+        if old.exists():
+            old.unlink()
 
-    random.seed(f"{run_id}-{attempt}")
+    audio_files, durations = [], []
+    story_index = STORIES.index(story)
+    for index, (urdu, english) in enumerate(story["scenes"], start=1):
+        print(f"Creating Urdu narration for scene {index}/{len(story['scenes'])}...")
+        audio_path = AUDIO_DIR / f"voice_{index:02}.mp3"
+        asyncio.run(create_voice_segment(urdu, audio_path))
+        audio_files.append(audio_path)
+        durations.append(get_duration(audio_path))
 
-    story = random.choice(STORIES)
+    # Join voice segments in the same order used to time the English subtitles.
+    audio_list = []
+    for item in audio_files:
+        safe = str(item.resolve()).replace("'", "'\\''")
+        audio_list.append(f"file '{safe}'")
+    AUDIO_CONCAT_FILE.write_text("\n".join(audio_list), encoding="utf-8")
+    run_command([
+        "ffmpeg","-y","-f","concat","-safe","0","-i",str(AUDIO_CONCAT_FILE),
+        "-c:a","libmp3lame","-q:a","3",str(VOICE_FILE)
+    ])
 
-    global STORY_IN_USE
-    STORY_IN_USE = story
-    print("Selected story:", story["title"])
-
-    # Clear old generated scenes and clips.
-    for old_file in SCENES_DIR.glob("*"):
-        if old_file.is_file():
-            old_file.unlink()
-
-    for old_file in OUTPUT_DIR.glob("clip_*.mp4"):
-        old_file.unlink()
-
-    image_files = generate_all_images(story)
-
-    asyncio.run(generate_voice(story["narration"]))
-
-    total_duration = get_duration(VOICE_FILE)
-    print(f"Voice duration: {total_duration:.1f} seconds")
-
-    make_subtitles(story, total_duration)
-
-    clips = create_scene_clips(
-        image_files,
-        total_duration
-    )
-
-    silent_video = join_clips(clips)
-
+    make_subtitles(story, durations)
+    clips = []
+    for i, duration in enumerate(durations, start=1):
+        clip_path = OUTPUT_DIR / f"clip_{i}.mp4"
+        print(f"Rendering 3D Tom & Jerry scene {i}/{len(durations)} with Blender...")
+        run_command([
+            "blender", "-b", "--python", str(BLENDER_SCRIPT), "--",
+            f"{duration:.3f}", str(i), str(story_index), str(clip_path)
+        ])
+        if not clip_path.exists() or clip_path.stat().st_size < 10000:
+            raise RuntimeError(f"Blender did not create scene clip {i}.")
+        clips.append(clip_path)
+    silent_video = join_files(clips, CONCAT_FILE, OUTPUT_DIR / "silent_video.mp4")
     create_final_video(silent_video)
-
-    upload_to_youtube(story["title"])
-
+    upload_to_youtube(story["title"], story)
     print("\nALL TASKS COMPLETED.")
 
 
