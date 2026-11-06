@@ -118,15 +118,43 @@ for x in (-4.7,4.6):
 
 tom=make_tom(); jerry=make_jerry()
 tom.location=(-1.25,0,0); jerry.location=(1.2,-.1,0)
-# A prop that gives each scene a visible story beat
-if scene_no in (1,2,3,4,5,6):
-    bpy.ops.mesh.primitive_cube_add(size=.7, location=(0,-.3,.38))
-    prop=bpy.context.object; prop.name="Golden cheese story prop"; prop.scale=(.55,.18,.34); assign(prop,gold)
-    bevel=prop.modifiers.new("Soft cartoon edges","BEVEL"); bevel.width=.12; bevel.segments=3
-    prop.keyframe_insert(data_path="location",frame=1)
-    prop.location.x=1.5 if scene_no%2 else -1.5
-    prop.keyframe_insert(data_path="location",frame=max(2,int(duration*12)))
+# Episode-specific 3D props, each with its own moving gag.
+def animate_prop(obj, x_end=1.5, z_end=.4, spin=0.0):
+    obj.keyframe_insert(data_path="location", frame=1)
+    obj.keyframe_insert(data_path="rotation_euler", frame=1)
+    obj.location.x=x_end; obj.location.z=z_end
+    obj.rotation_euler.z=spin
+    obj.keyframe_insert(data_path="location", frame=max(2,int(duration*12)))
+    obj.keyframe_insert(data_path="rotation_euler", frame=max(2,int(duration*12)))
 
+if story_index in (0,1,2,9):
+    bpy.ops.mesh.primitive_cube_add(size=.7, location=(0,-.45,.42))
+    prop=bpy.context.object; prop.name="Cheese prop"; prop.scale=(.52,.18,.34); assign(prop,gold)
+    bevel=prop.modifiers.new("Soft cheese edges","BEVEL"); bevel.width=.12; bevel.segments=3
+    animate_prop(prop, 1.55 if scene_no%2 else -1.55, .42, math.pi*.6)
+elif story_index==3:
+    uv("Floating red balloon",(0,-.5,2.2),(.42,.34,.48),mat("Balloon red",(0.9,.08,.12),.25))
+    cylinder("Balloon string",(0,-.5,1.45),.018,1.15,white)
+elif story_index==4:
+    cylinder("Toy drum",(0,-.45,.65),.42,.38,mat("Drum red",(.72,.12,.12)))
+    cylinder("Drum top",(0,-.45,.86),.40,.035,white)
+elif story_index==5:
+    cylinder("Fishing rod",(0,-.35,1.3),.035,2.1,bark,rot=(0,.1,.9))
+    uv("Fishing float",(.7,-.45,.55),(.12,.12,.2),mat("Float red",(.9,.12,.08)))
+elif story_index==6:
+    uv("Golden bell",(0,-.5,.75),(.28,.25,.30),gold)
+    cylinder("Bell clapper",(0,-.5,.43),.045,.18,black)
+elif story_index==7:
+    cylinder("Magic hat brim",(0,-.45,.42),.62,.12,black)
+    cylinder("Magic hat crown",(0,-.45,.85),.38,.78,black)
+    uv("Magic hat star",(.25,-.58,1.15),(.12,.04,.12),gold)
+elif story_index==8:
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(0,-.4,.48))
+    cart=bpy.context.object; cart.name="Toy race car"; cart.scale=(.72,.42,.22); assign(cart,mat("Toy car red",(.82,.06,.08),.3))
+    for wx in (-.48,.48):
+        for wy in (-.28,.28):
+            uv("Toy car wheel",(wx,wy,.22),(.16,.10,.16),black)
+    animate_prop(cart,1.8,.48,math.pi*2)
 # Camera: vertical 9:16 portrait composition
 bpy.ops.object.camera_add(location=(0,-12,5.2))
 cam=bpy.context.object
@@ -171,8 +199,17 @@ for frame in (1, max(2,end//2), end):
     jerry.rotation_euler[1]=-.12*math.sin(t*math.pi*5)
     jerry.keyframe_insert(data_path="location",frame=frame)
     jerry.keyframe_insert(data_path="rotation_euler",frame=frame)
-# Smooth animation interpolation
-for obj in (tom,jerry):
+# Animate Tom's arm pivots to add visible running and reaction gestures.
+for obj in list(bpy.data.objects):
+    if "Tom arm pivot" in obj.name:
+        obj.rotation_euler[1]=-.55
+        obj.keyframe_insert(data_path="rotation_euler",frame=1)
+        obj.rotation_euler[1]=.55
+        obj.keyframe_insert(data_path="rotation_euler",frame=max(2,end//2))
+        obj.rotation_euler[1]=-.55
+        obj.keyframe_insert(data_path="rotation_euler",frame=end)
+# Smooth animation interpolation on all animated objects.
+for obj in list(bpy.data.objects):
     if obj.animation_data and obj.animation_data.action:
         for fc in obj.animation_data.action.fcurves:
             for kp in fc.keyframe_points: kp.interpolation="BEZIER"
