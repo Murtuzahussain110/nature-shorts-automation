@@ -1,5 +1,5 @@
 
-name: Daily Nature Shorts
+name: Daily Tom and Jerry 3D Shorts
 
 on:
   workflow_dispatch:
@@ -25,12 +25,12 @@ jobs:
       - name: Install FFmpeg
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core
+          sudo apt-get install -y blender ffmpeg fonts-dejavu-core
 
       - name: Install Python packages
         run: pip install -r requirements.txt
 
-      - name: Generate and upload Short
+      - name: Render Tom and Jerry episode and upload privately
         env:
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
@@ -41,6 +41,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: nature-short-output
+          name: tom-jerry-3d-short-output
           path: output/
           if-no-files-found: ignore
