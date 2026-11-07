@@ -654,7 +654,6 @@ def main():
             old.unlink()
 
     audio_files, durations = [], []
-    story_index = STORIES.index(story)
     for index, (urdu, english) in enumerate(story["scenes"], start=1):
         print(f"Creating Urdu narration for scene {index}/{len(story['scenes'])}...")
         audio_path = AUDIO_DIR / f"voice_{index:02}.mp3"
