@@ -1,5 +1,6 @@
 
 name: Daily Tom and Jerry 3D Shorts
+run-name: Render private animated cartoon short
 
 on:
   push:
