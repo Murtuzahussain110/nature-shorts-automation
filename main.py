@@ -599,16 +599,26 @@ def main():
             "--python", str(BLENDER_SCRIPT), "--",
             f"{duration:.3f}", str(i), str(story_index), str(clip_path)
         ])
-        if not clip_path.exists() or clip_path.stat().st_size < 10000:
-            print("\nBlender finished without a usable scene video.", flush=True)
+        # Blender renders numbered PNG frames for compatibility with builds
+        # that do not expose FFmpeg as a native render output format.
+        frame_pattern = str(clip_path) + ".frame_%04d.png"
+        frame_files = sorted(OUTPUT_DIR.glob(f"{clip_path.name}.frame_*.png"))
+        if not frame_files:
+            print("\nBlender finished without rendering any PNG frames.", flush=True)
             if blender_result.stdout:
                 print("\n--- BLENDER OUTPUT ---\n" + blender_result.stdout[-12000:], flush=True)
             if blender_result.stderr:
                 print("\n--- BLENDER ERRORS ---\n" + blender_result.stderr[-20000:], flush=True)
-            raise RuntimeError(
-                f"Blender did not create scene clip {i} at {clip_path}. "
-                "See Blender output above for the actual rendering error."
-            )
+            raise RuntimeError(f"Blender did not create PNG frames for scene {i}.")
+        run_command([
+            "ffmpeg", "-y", "-framerate", "12", "-i", frame_pattern,
+            "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
+            "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(clip_path)
+        ])
+        for frame_file in frame_files:
+            frame_file.unlink()
+        if not clip_path.exists() or clip_path.stat().st_size < 10000:
+            raise RuntimeError(f"FFmpeg did not create a usable scene clip {i} at {clip_path}.")
         clips.append(clip_path)
     silent_video = join_files(clips, CONCAT_FILE, OUTPUT_DIR / "silent_video.mp4")
     create_final_video(silent_video)
