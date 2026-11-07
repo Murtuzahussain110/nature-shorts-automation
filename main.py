@@ -7,6 +7,7 @@ import html
 import subprocess
 import asyncio
 import time
+import requests
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
 from pathlib import Path
@@ -546,17 +547,100 @@ def upload_to_youtube(title, story):
     print("Video URL:", f"https://www.youtube.com/watch?v={video_id}")
 
 
+
+def generate_story_with_gemini():
+    """Generate one fresh six-scene Urdu/English episode using Gemini."""
+    api_key = os.getenv("GEMINI_API_KEY", "").strip()
+    if not api_key:
+        print("GEMINI_API_KEY is not set; using the built-in episode list for this run.")
+        return None
+
+    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+    prompt = """
+Create a completely original, family-friendly, funny Tom and Jerry cartoon episode
+for a short vertical animated video. The story must have exactly 6 connected scenes
+with clear physical actions, a funny escalation, and a satisfying ending.
+Return ONLY valid JSON with this exact structure:
+{
+  "title": "Tom & Jerry Urdu Cartoon EP | short English title",
+  "tags": ["Tom and Jerry", "Urdu cartoon", "funny animation", "cartoon shorts"],
+  "scenes": [
+    {"urdu": "One or two natural Urdu sentences for voice narration.",
+     "english": "A concise English subtitle describing the same action."}
+  ]
+}
+Rules:
+- Write natural Urdu in Urdu script, not Roman Urdu.
+- English subtitles must match the Urdu narration.
+- Every scene must describe a visible action that can be animated.
+- Keep Tom and Jerry's familiar cat-and-mouse personalities.
+- Make each new episode idea distinct; avoid repeating the same cheese chase.
+- Keep it suitable for children and families. No violence, danger, or frightening content.
+- Exactly 6 scene objects. No markdown fences and no extra commentary.
+"""
+    response = requests.post(
+        url,
+        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+        json={
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.9
+            }
+        },
+        timeout=90
+    )
+    if response.status_code >= 400:
+        raise RuntimeError(
+            f"Gemini API request failed ({response.status_code}): {response.text[:3000]}"
+        )
+    payload = response.json()
+    try:
+        raw = payload["candidates"][0]["content"]["parts"][0]["text"]
+        data = json.loads(raw)
+    except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Gemini returned an invalid story response: {payload}") from exc
+
+    title = clean_text(data.get("title"))
+    tags = data.get("tags")
+    scenes = data.get("scenes")
+    if not title or not isinstance(tags, list) or not isinstance(scenes, list) or len(scenes) != 6:
+        raise RuntimeError("Gemini story must contain a title, tags list, and exactly 6 scenes.")
+    clean_scenes = []
+    for index, scene in enumerate(scenes, start=1):
+        if not isinstance(scene, dict):
+            raise RuntimeError(f"Gemini scene {index} is not a JSON object.")
+        urdu = clean_text(scene.get("urdu"))
+        english = clean_text(scene.get("english"))
+        if not urdu or not english:
+            raise RuntimeError(f"Gemini scene {index} is missing Urdu narration or English subtitles.")
+        clean_scenes.append((urdu, english))
+
+    clean_tags = [clean_text(tag) for tag in tags if clean_text(tag)]
+    if not clean_tags:
+        clean_tags = ["Tom and Jerry", "Urdu cartoon", "funny animation", "cartoon shorts"]
+    story = {"title": title[:100], "tags": clean_tags[:12], "scenes": clean_scenes}
+    print("Gemini generated a fresh 6-scene episode:", story["title"])
+    return story
+
 def main():
     print("\n======================================")
     print("   TOM & JERRY URDU 3D CARTOON SHORTS")
     print("======================================\n")
-    # Select a predictable daily episode; manual reruns can use an override.
-    override = os.getenv("STORY_INDEX")
-    if override is not None:
-        story = STORIES[int(override) % len(STORIES)]
+    # Prefer a fresh Gemini-written episode. Keep the preset list as a safe
+    # fallback until the GEMINI_API_KEY GitHub secret has been added.
+    story = generate_story_with_gemini()
+    if story is None:
+        override = os.getenv("STORY_INDEX")
+        if override is not None:
+            story = STORIES[int(override) % len(STORIES)]
+        else:
+            day_number = datetime.now(timezone.utc).date().toordinal()
+            story = STORIES[day_number % len(STORIES)]
+        story_index = STORIES.index(story)
     else:
-        day_number = datetime.now(timezone.utc).date().toordinal()
-        story = STORIES[day_number % len(STORIES)]
+        story_index = 0
     print("Selected episode:", story["title"])
 
     for folder in (SCENES_DIR, AUDIO_DIR):
