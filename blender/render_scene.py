@@ -189,9 +189,10 @@ else:
 scene.render.resolution_x=720; scene.render.resolution_y=1280; scene.render.resolution_percentage=100
 scene.render.fps=12
 scene.frame_start=1; scene.frame_end=max(2,int(duration*12))
-scene.render.image_settings.file_format="FFMPEG"
-scene.render.ffmpeg.format="MPEG4"; scene.render.ffmpeg.codec="H264"; scene.render.ffmpeg.constant_rate_factor="MEDIUM"
-scene.render.filepath=output_path
+# Render numbered PNG frames; system FFmpeg assembles them into MP4.
+scene.render.image_settings.file_format="PNG"
+scene.render.image_settings.color_mode="RGB"
+scene.render.filepath=output_path + ".frame_"
 scene.world.color=(.22,.22,.22)
 scene.view_settings.view_transform="Standard"
 available_looks = {
