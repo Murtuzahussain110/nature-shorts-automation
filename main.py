@@ -594,12 +594,21 @@ def main():
     for i, duration in enumerate(durations, start=1):
         clip_path = OUTPUT_DIR / f"clip_{i}.mp4"
         print(f"Rendering 3D Tom & Jerry scene {i}/{len(durations)} with Blender...")
-        run_command([
-            "blender", "-b", "--python", str(BLENDER_SCRIPT), "--",
+        blender_result = run_command([
+            "blender", "-b", "--python-exit-code", "1",
+            "--python", str(BLENDER_SCRIPT), "--",
             f"{duration:.3f}", str(i), str(story_index), str(clip_path)
         ])
         if not clip_path.exists() or clip_path.stat().st_size < 10000:
-            raise RuntimeError(f"Blender did not create scene clip {i}.")
+            print("\nBlender finished without a usable scene video.", flush=True)
+            if blender_result.stdout:
+                print("\n--- BLENDER OUTPUT ---\n" + blender_result.stdout[-12000:], flush=True)
+            if blender_result.stderr:
+                print("\n--- BLENDER ERRORS ---\n" + blender_result.stderr[-20000:], flush=True)
+            raise RuntimeError(
+                f"Blender did not create scene clip {i} at {clip_path}. "
+                "See Blender output above for the actual rendering error."
+            )
         clips.append(clip_path)
     silent_video = join_files(clips, CONCAT_FILE, OUTPUT_DIR / "silent_video.mp4")
     create_final_video(silent_video)
