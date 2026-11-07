@@ -2,6 +2,13 @@
 name: Daily Tom and Jerry 3D Shorts
 
 on:
+  push:
+    branches:
+      - feature/ayan-coco-cartoon-shorts
+    paths:
+      - 'main.py'
+      - 'blender/**'
+      - '.github/workflows/daily.yml'
   workflow_dispatch:
   schedule:
     - cron: "0 13 * * *"
