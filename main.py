@@ -555,7 +555,7 @@ def generate_story_with_gemini():
         print("GEMINI_API_KEY is not set; using the built-in episode list for this run.")
         return None
 
-    model = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+    model = os.getenv("GEMINI_MODEL", "gemini-3.8-flash").strip()
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     prompt = """
 Create a completely original, family-friendly, funny Tom and Jerry cartoon episode
@@ -579,19 +579,42 @@ Rules:
 - Keep it suitable for children and families. No violence, danger, or frightening content.
 - Exactly 6 scene objects. No markdown fences and no extra commentary.
 """
-    response = requests.post(
-        url,
-        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
-        json={
-            "contents": [{"parts": [{"text": prompt}]}],
-            "generationConfig": {
-                "responseMimeType": "application/json",
-                "temperature": 0.9
-            }
-        },
-        timeout=90
-    )
-    if response.status_code >= 400:
+    request_body = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.9
+        }
+    }
+    response = None
+    # Gemini can return temporary 503/429 errors during busy periods.
+    # Retry a few times, then use a built-in episode so the daily upload
+    # is not cancelled just because Gemini is temporarily unavailable.
+    for attempt in range(1, 4):
+        try:
+            response = requests.post(
+                url,
+                headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+                json=request_body,
+                timeout=90
+            )
+        except requests.RequestException as exc:
+            if attempt < 3:
+                print(f"Gemini connection issue (attempt {attempt}/3): {exc}. Retrying...")
+                time.sleep(attempt * 5)
+                continue
+            print("Gemini is unreachable after 3 attempts; using a built-in episode.")
+            return None
+
+        if response.status_code < 400:
+            break
+        if response.status_code in (429, 500, 502, 503, 504):
+            if attempt < 3:
+                print(f"Gemini temporary error {response.status_code} (attempt {attempt}/3). Retrying...")
+                time.sleep(attempt * 8)
+                continue
+            print(f"Gemini is still busy (HTTP {response.status_code}); using a built-in episode.")
+            return None
         raise RuntimeError(
             f"Gemini API request failed ({response.status_code}): {response.text[:3000]}"
         )
