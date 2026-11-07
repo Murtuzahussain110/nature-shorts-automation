@@ -122,7 +122,20 @@ STORIES = [
 
 
 def run_command(command):
-    subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    result = subprocess.run(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, errors="replace"
+    )
+    if result.returncode != 0:
+        print("\nCOMMAND FAILED:", " ".join(map(str, command)), flush=True)
+        if result.stdout:
+            print("\n--- COMMAND STDOUT ---\n" + result.stdout[-12000:], flush=True)
+        if result.stderr:
+            print("\n--- COMMAND STDERR ---\n" + result.stderr[-20000:], flush=True)
+        raise subprocess.CalledProcessError(
+            result.returncode, command, output=result.stdout, stderr=result.stderr
+        )
+    return result
 
 
 def get_duration(path):
