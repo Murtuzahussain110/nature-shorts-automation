@@ -226,11 +226,7 @@ for obj in list(bpy.data.objects):
         obj.keyframe_insert(data_path="rotation_euler",frame=max(2,end//2))
         obj.rotation_euler[1]=-.55
         obj.keyframe_insert(data_path="rotation_euler",frame=end)
-# Smooth animation interpolation on all animated objects.
-for obj in list(bpy.data.objects):
-    if obj.animation_data and obj.animation_data.action:
-        for fc in obj.animation_data.action.fcurves:
-            for kp in fc.keyframe_points: kp.interpolation="BEZIER"
+# Blender's default keyframe interpolation is Bezier. Avoid direct Action.fcurves access because Blender 5 uses the layered Action API.
 
 scene.render.image_settings.color_mode="RGB"
 scene.camera.data.lens=50
