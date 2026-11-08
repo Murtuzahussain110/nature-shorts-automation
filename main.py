@@ -123,20 +123,24 @@ STORIES = [
 
 
 def run_command(command):
-    result = subprocess.run(
-        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, errors="replace"
+    # Stream Blender/FFmpeg output to GitHub Actions instead of hiding it
+    # until a long render process exits. This makes each render observable.
+    process = subprocess.Popen(
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, errors="replace", bufsize=1
     )
-    if result.returncode != 0:
-        print("\nCOMMAND FAILED:", " ".join(map(str, command)), flush=True)
-        if result.stdout:
-            print("\n--- COMMAND STDOUT ---\n" + result.stdout[-12000:], flush=True)
-        if result.stderr:
-            print("\n--- COMMAND STDERR ---\n" + result.stderr[-20000:], flush=True)
+    output_lines = []
+    for line in process.stdout:
+        print(line, end="", flush=True)
+        output_lines.append(line)
+    return_code = process.wait()
+    output = "".join(output_lines)
+    if return_code != 0:
+        print("\\nCOMMAND FAILED:", " ".join(map(str, command)), flush=True)
         raise subprocess.CalledProcessError(
-            result.returncode, command, output=result.stdout, stderr=result.stderr
+            return_code, command, output=output, stderr=""
         )
-    return result
+    return subprocess.CompletedProcess(command, return_code, stdout=output, stderr="")
 
 
 def get_duration(path):
@@ -699,7 +703,7 @@ def main():
     clips = []
     for i, duration in enumerate(durations, start=1):
         clip_path = OUTPUT_DIR / f"clip_{i}.mp4"
-        print(f"Rendering 3D Tom & Jerry scene {i}/{len(durations)} with Blender...")
+        print(f"Rendering 3D Tom & Jerry scene {i}/{len(durations)} with Blender at optimized 8 FPS...", flush=True)
         blender_result = run_command([
             "blender", "-b", "--python-exit-code", "1",
             "--python", str(BLENDER_SCRIPT), "--",
@@ -717,7 +721,7 @@ def main():
                 print("\n--- BLENDER ERRORS ---\n" + blender_result.stderr[-20000:], flush=True)
             raise RuntimeError(f"Blender did not create PNG frames for scene {i}.")
         run_command([
-            "ffmpeg", "-y", "-framerate", "12", "-i", frame_pattern,
+            "ffmpeg", "-y", "-framerate", "8", "-i", frame_pattern,
             "-c:v", "libx264", "-preset", "veryfast", "-crf", "20",
             "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(clip_path)
         ])
