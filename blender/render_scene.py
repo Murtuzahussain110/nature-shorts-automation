@@ -190,8 +190,7 @@ scene.render.resolution_x=480; scene.render.resolution_y=854; scene.render.resol
 scene.render.fps=8
 scene.frame_start=1; scene.frame_end=max(2,int(duration*8))
 # Render numbered PNG frames; system FFmpeg assembles them into MP4.
-scene.render.image_settings.file_format="JPEG"
-scene.render.image_settings.quality=82
+scene.render.image_settings.file_format="PNG"
 scene.render.image_settings.color_mode="RGB"
 scene.render.filepath=output_path + ".frame_"
 scene.world.color=(.22,.22,.22)
