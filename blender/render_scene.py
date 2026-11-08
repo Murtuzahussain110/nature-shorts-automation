@@ -230,5 +230,5 @@ for obj in list(bpy.data.objects):
 
 scene.render.image_settings.color_mode="RGB"
 scene.camera.data.lens=50
-scene.render.filepath=output_path
+scene.render.filepath=output_path + ".frame_"
 bpy.ops.render.render(animation=True)
