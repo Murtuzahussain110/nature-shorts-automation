@@ -172,7 +172,13 @@ bpy.ops.object.light_add(type="AREA", location=(0,4,6))
 rim=bpy.context.object; rim.data.energy=700; rim.data.size=4
 
 scene=bpy.context.scene
-scene.render.engine="BLENDER_EEVEE_NEXT" if bpy.app.version >= (4,2,0) else "BLENDER_EEVEE"
+available_engines = {item.identifier for item in scene.bl_rna.properties["render"].fixed_type.properties["engine"].enum_items}
+if "BLENDER_EEVEE_NEXT" in available_engines:
+    scene.render.engine = "BLENDER_EEVEE_NEXT"
+elif "BLENDER_EEVEE" in available_engines:
+    scene.render.engine = "BLENDER_EEVEE"
+else:
+    scene.render.engine = "CYCLES"
 scene.render.resolution_x=720; scene.render.resolution_y=1280; scene.render.resolution_percentage=100
 scene.render.fps=12
 scene.frame_start=1; scene.frame_end=max(2,int(duration*12))
