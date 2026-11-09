@@ -2,6 +2,12 @@
 name: Daily Tom and Jerry 3D Shorts
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'blender/render_scene.py'
+      - '.github/workflows/daily.yml'
   workflow_dispatch:
   schedule:
     - cron: "0 13 * * *"
