@@ -40,7 +40,8 @@ CONCAT_FILE = OUTPUT_DIR / "clips.txt"
 AUDIO_CONCAT_FILE = OUTPUT_DIR / "audio.txt"
 
 WIDTH, HEIGHT, FPS = 1080, 1920, 25
-VOICE = os.getenv("URDU_VOICE", "ur-PK-UzmaNeural")
+TOM_VOICE = os.getenv("TOM_URDU_VOICE", "ur-PK-AsadNeural")
+JERRY_VOICE = os.getenv("JERRY_URDU_VOICE", "ur-PK-UzmaNeural")
 BLENDER_SCRIPT = BASE_DIR / "blender" / "render_scene.py"
 PRIVACY_DEFAULT = "private"
 
@@ -307,8 +308,9 @@ def render_scene(scene_no, caption, story_title):
     return im
 
 
-async def create_voice_segment(text, destination):
-    tts = edge_tts.Communicate(text=text, voice=VOICE, rate="-3%", volume="+0%")
+async def create_voice_segment(text, destination, speaker="tom"):
+    voice = TOM_VOICE if speaker == "tom" else JERRY_VOICE
+    tts = edge_tts.Communicate(text=text, voice=voice, rate="-3%" if speaker == "tom" else "+8%", volume="+0%")
     await tts.save(str(destination))
     if not destination.exists() or destination.stat().st_size < 700:
         raise RuntimeError(f"Voice segment failed: {destination.name}")
@@ -325,7 +327,8 @@ def timestamp(seconds):
 def make_subtitles(story, durations):
     offset = 0.0
     entries = []
-    for i, ((urdu, english), duration) in enumerate(zip(story["scenes"], durations), start=1):
+    for i, (scene, duration) in enumerate(zip(story["scenes"], durations), start=1):
+        urdu, english = scene[0], scene[1]
         start = max(0, offset + 0.05)
         end = max(start + 0.5, offset + duration - 0.05)
         entries.append(f"{i}\n{timestamp(start)} --> {timestamp(end)}\n{english}\n")
@@ -452,7 +455,7 @@ def create_final_video(silent_video):
         f"subtitles='{subtitle_path}':force_style="
         "'FontName=DejaVu Sans,FontSize=21,PrimaryColour=&H00FFFFFF,"
         "OutlineColour=&H00101820,BorderStyle=1,Outline=3,Shadow=1,"
-        "Alignment=2,MarginV=145'"
+        "Alignment=2,MarginV=75'"
     )
     # A very quiet generated ambient pad; no copyrighted song is used.
     run_command([
@@ -570,14 +573,17 @@ Return ONLY valid JSON with this exact structure:
   "title": "Tom & Jerry Urdu Cartoon EP | short English title",
   "tags": ["Tom and Jerry", "Urdu cartoon", "funny animation", "cartoon shorts"],
   "scenes": [
-    {"urdu": "One or two natural Urdu sentences for voice narration.",
-     "english": "A concise English subtitle describing the same action."}
+    {"speaker": "jerry",
+     "urdu": "A short first-person Urdu dialogue spoken by Jerry.",
+     "english": "A concise English subtitle translating the spoken line.",
+     "action": "Jerry sneaks toward the cheese while Tom watches from behind a tree."}
   ]
 }
 Rules:
-- Write natural Urdu in Urdu script, not Roman Urdu.
-- English subtitles must match the Urdu narration.
-- Every scene must describe a visible action that can be animated.
+- Write short, natural Urdu dialogue in Urdu script, not third-person narration.
+- Every scene must include speaker exactly "tom" or "jerry"; both characters must speak across the episode.
+- English subtitles must accurately translate that character's spoken dialogue.
+- Include a concrete visible action with movement, expression, and a prop or setting detail.
 - Keep Tom and Jerry's familiar cat-and-mouse personalities.
 - Make each new episode idea distinct; avoid repeating the same cheese chase.
 - Keep it suitable for children and families. No violence, danger, or frightening content.
@@ -640,9 +646,11 @@ Rules:
             raise RuntimeError(f"Gemini scene {index} is not a JSON object.")
         urdu = clean_text(scene.get("urdu"))
         english = clean_text(scene.get("english"))
-        if not urdu or not english:
-            raise RuntimeError(f"Gemini scene {index} is missing Urdu narration or English subtitles.")
-        clean_scenes.append((urdu, english))
+        speaker = clean_text(scene.get("speaker")).lower()
+        action = clean_text(scene.get("action"))
+        if not urdu or not english or speaker not in ("tom", "jerry") or not action:
+            raise RuntimeError(f"Gemini scene {index} is missing dialogue, valid speaker, subtitle, or visible action.")
+        clean_scenes.append((urdu, english, speaker, action))
 
     clean_tags = [clean_text(tag) for tag in tags if clean_text(tag)]
     if not clean_tags:
@@ -680,11 +688,22 @@ def main():
         if old.exists():
             old.unlink()
 
+    normalized_scenes = []
+    for scene_index, scene in enumerate(story["scenes"], start=1):
+        if len(scene) == 2:
+            urdu, english = scene
+            speaker = "jerry" if scene_index % 2 else "tom"
+            action = english
+        else:
+            urdu, english, speaker, action = scene
+        normalized_scenes.append((urdu, english, speaker, action))
+    story["scenes"] = normalized_scenes
+
     audio_files, durations = [], []
-    for index, (urdu, english) in enumerate(story["scenes"], start=1):
-        print(f"Creating Urdu narration for scene {index}/{len(story['scenes'])}...")
+    for index, (urdu, english, speaker, action) in enumerate(story["scenes"], start=1):
+        print(f"Creating {speaker.upper()} Urdu dialogue for scene {index}/{len(story['scenes'])}...")
         audio_path = AUDIO_DIR / f"voice_{index:02}.mp3"
-        asyncio.run(create_voice_segment(urdu, audio_path))
+        asyncio.run(create_voice_segment(urdu, audio_path, speaker))
         audio_files.append(audio_path)
         durations.append(get_duration(audio_path))
 
