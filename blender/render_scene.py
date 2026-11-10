@@ -188,9 +188,9 @@ else:
     raise RuntimeError(f"No supported render engine found. Available: {sorted(available_engines)}")
 # Optimized cloud rendering: lower pixel count and frame rate keep each
 # six-scene episode within GitHub Actions runtime while preserving 9:16 output.
-scene.render.resolution_x=360; scene.render.resolution_y=640; scene.render.resolution_percentage=100
-scene.render.fps=6
-scene.frame_start=1; scene.frame_end=max(2,int(duration*6))
+scene.render.resolution_x=540; scene.render.resolution_y=960; scene.render.resolution_percentage=100
+scene.render.fps=8
+scene.frame_start=1; scene.frame_end=max(2,int(duration*8))
 # Render numbered PNG frames; system FFmpeg assembles them into MP4.
 scene.render.image_settings.file_format="PNG"
 scene.render.image_settings.color_mode="RGB"
@@ -204,21 +204,60 @@ available_looks = {
 scene.view_settings.look = "Medium High Contrast" if "Medium High Contrast" in available_looks else "None"
 scene.display.shading.light="STUDIO"
 
-# Distinct animated action: chase, dodge, jump and reactions
+# Scene-specific choreography: each numbered scene gets a visibly different gag.
 end=scene.frame_end
-for frame in (1, max(2,end//2), end):
+scene_actions = {
+    1: ("sneak", -0.45, 0.65),
+    2: ("spot", 0.85, -0.35),
+    3: ("grab", 1.45, -1.05),
+    4: ("chase", 2.25, -1.85),
+    5: ("slip", -1.75, 1.65),
+    6: ("reaction", -0.25, 0.25),
+}
+action_name, tom_travel, jerry_travel = scene_actions.get(scene_no, ("chase", 1.8, -1.4))
+for frame in (1, max(2,end//3), max(2,(2*end)//3), end):
     t=(frame-1)/max(1,end-1)
-    # Tom lunges forward while Jerry darts across the foreground.
-    tom.location.x=-1.3 + 1.0*math.sin(t*math.pi*1.4 + scene_no*.35)
-    tom.location.z=.10*abs(math.sin(t*math.pi*3))
-    tom.rotation_euler[1]=.10*math.sin(t*math.pi*4)
+    # Four poses per shot make movement more apparent than a single slow drift.
+    if action_name == "sneak":
+        tom.location.x = -1.5 + 0.35*t
+        jerry.location.x = 1.25 - 0.45*t
+        jerry.location.z = .06*abs(math.sin(t*math.pi*5))
+    elif action_name == "spot":
+        tom.location.x = -1.25 + .55*math.sin(t*math.pi)
+        tom.rotation_euler[1] = .22*math.sin(t*math.pi)
+        jerry.location.x = .95 - .25*t
+        jerry.location.z = .12*abs(math.sin(t*math.pi*3))
+    elif action_name == "grab":
+        tom.location.x = -1.35 + 1.25*t
+        jerry.location.x = 1.15 - .85*t
+        tom.location.z = .22*abs(math.sin(t*math.pi*2))
+        jerry.location.z = .28*abs(math.sin(t*math.pi*3))
+    elif action_name == "chase":
+        tom.location.x = -1.5 + tom_travel*t + .28*math.sin(t*math.pi*4)
+        jerry.location.x = 1.35 + jerry_travel*t + .24*math.sin(t*math.pi*5)
+        tom.location.z = .18*abs(math.sin(t*math.pi*5))
+        jerry.location.z = .32*abs(math.sin(t*math.pi*6))
+    elif action_name == "slip":
+        tom.location.x = -1.1 + .8*t
+        tom.rotation_euler[1] = .9*math.sin(t*math.pi*2)
+        tom.location.z = .32*abs(math.sin(t*math.pi*2))
+        jerry.location.x = 1.15 - .45*t
+        jerry.location.z = .08*abs(math.sin(t*math.pi*4))
+    else:
+        tom.location.x = -.8 + .25*math.sin(t*math.pi*2)
+        tom.rotation_euler[1] = .15*math.sin(t*math.pi*3)
+        jerry.location.x = .75 + .25*math.sin(t*math.pi*2 + 1)
+        jerry.location.z = .08*abs(math.sin(t*math.pi*3))
     tom.keyframe_insert(data_path="location",frame=frame)
     tom.keyframe_insert(data_path="rotation_euler",frame=frame)
-    jerry.location.x=1.25 - 1.25*math.sin(t*math.pi*1.7 + .4)
-    jerry.location.z=.32*abs(math.sin(t*math.pi*4))
-    jerry.rotation_euler[1]=-.12*math.sin(t*math.pi*5)
     jerry.keyframe_insert(data_path="location",frame=frame)
     jerry.keyframe_insert(data_path="rotation_euler",frame=frame)
+# Small camera push-in and lateral reframing for a more cinematic vertical short.
+cam.location.x = -0.25 if scene_no in (1,3,5) else 0.25
+cam.keyframe_insert(data_path="location", frame=1)
+cam.location.x *= -1
+cam.location.z += 0.18
+cam.keyframe_insert(data_path="location", frame=end)
 # Animate Tom's arm pivots to add visible running and reaction gestures.
 for obj in list(bpy.data.objects):
     if "Tom arm pivot" in obj.name:
