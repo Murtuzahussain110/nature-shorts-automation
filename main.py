@@ -344,7 +344,7 @@ def make_subtitles(story, durations):
             lines.append(current)
         if len(lines) > 2:
             lines = [ " ".join(words[:len(words)//2]), " ".join(words[len(words)//2:]) ]
-        caption = "\\N".join(lines[:2])
+        caption = "\n".join(lines[:2])
         start = max(0, offset + 0.05)
         end = max(start + 0.5, offset + duration - 0.05)
         entries.append(f"{i}\n{timestamp(start)} --> {timestamp(end)}\n{caption}\n")
