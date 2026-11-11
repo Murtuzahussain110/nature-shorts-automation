@@ -328,10 +328,26 @@ def make_subtitles(story, durations):
     offset = 0.0
     entries = []
     for i, (scene, duration) in enumerate(zip(story["scenes"], durations), start=1):
-        urdu, english = scene[0], scene[1]
+        english = scene[1]
+        # Keep captions compact: at most two short lines, centred.
+        words = english.split()
+        lines, current = [], ""
+        for word in words:
+            candidate = (current + " " + word).strip()
+            if len(candidate) <=  34:
+                current = candidate
+            else:
+                if current:
+                    lines.append(current)
+                current = word
+        if current:
+            lines.append(current)
+        if len(lines) > 2:
+            lines = [ " ".join(words[:len(words)//2]), " ".join(words[len(words)//2:]) ]
+        caption = "\\N".join(lines[:2])
         start = max(0, offset + 0.05)
         end = max(start + 0.5, offset + duration - 0.05)
-        entries.append(f"{i}\n{timestamp(start)} --> {timestamp(end)}\n{english}\n")
+        entries.append(f"{i}\n{timestamp(start)} --> {timestamp(end)}\n{caption}\n")
         offset += duration
     SUBTITLE_FILE.write_text("\n".join(entries), encoding="utf-8")
 
@@ -454,7 +470,7 @@ def create_final_video(silent_video):
     subtitle_filter = (
         f"subtitles='{subtitle_path}':force_style="
         "'FontName=DejaVu Sans,FontSize=21,PrimaryColour=&H00FFFFFF,"
-        "OutlineColour=&H00101820,BorderStyle=1,Outline=3,Shadow=1,"
+        "OutlineColour=&H00101820,BorderStyle=1,Outline=2,Shadow=0,"
         "Alignment=2,MarginV=75'"
     )
     # A very quiet generated ambient pad; no copyrighted song is used.
@@ -726,7 +742,7 @@ def main():
         blender_result = run_command([
             "blender", "-b", "--python-exit-code", "1",
             "--python", str(BLENDER_SCRIPT), "--",
-            f"{duration:.3f}", str(i), str(story_index), str(clip_path)
+            f"{duration:.3f}", str(i), str(story_index), str(clip_path), action
         ])
         # Blender renders numbered PNG frames for compatibility with builds
         # that do not expose FFmpeg as a native render output format.
