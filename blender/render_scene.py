@@ -9,6 +9,7 @@ duration = float(args[0])
 scene_no = int(args[1])
 story_index = int(args[2])
 output_path = args[3]
+story_action = args[4].lower() if len(args) > 4 else "tom and jerry chase"
 
 bpy.ops.object.select_all(action="SELECT")
 bpy.ops.object.delete(use_global=False)
@@ -214,7 +215,22 @@ scene_actions = {
     5: ("slip", -1.75, 1.65),
     6: ("reaction", -0.25, 0.25),
 }
-action_name, tom_travel, jerry_travel = scene_actions.get(scene_no, ("chase", 1.8, -1.4))
+# The movement is selected from the actual Gemini-written scene action,
+# rather than using only the scene number.
+action_text = story_action
+if any(word in action_text for word in ("sneak", "quiet", "hide", "چپکے", "چھپ")):
+    action_name = "sneak"
+elif any(word in action_text for word in ("jump", "leap", "grab", "اچھل", "چھلانگ", "پکڑ")):
+    action_name = "grab"
+elif any(word in action_text for word in ("slip", "fall", "spin", "پھسل", "گرا")):
+    action_name = "slip"
+elif any(word in action_text for word in ("run", "chase", "race", "بھاگ", "دوڑ")):
+    action_name = "chase"
+elif any(word in action_text for word in ("spot", "notice", "look", "دیکھ")):
+    action_name = "spot"
+else:
+    action_name = scene_actions.get(scene_no, ("reaction", 0, 0))[0]
+tom_travel, jerry_travel = scene_actions.get(scene_no, ("chase", 1.8, -1.4))[1:]
 for frame in (1, max(2,end//3), max(2,(2*end)//3), end):
     t=(frame-1)/max(1,end-1)
     # Four poses per shot make movement more apparent than a single slow drift.
