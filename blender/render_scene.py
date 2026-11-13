@@ -1,6 +1,8 @@
 import bpy
 import math
 import sys
+import subprocess
+from pathlib import Path
 from mathutils import Vector
 
 # Usage: blender -b --python blender/render_scene.py -- duration scene_no story_index output_path
@@ -182,9 +184,8 @@ else:
 scene.render.resolution_x=720; scene.render.resolution_y=1280; scene.render.resolution_percentage=100
 scene.render.fps=12
 scene.frame_start=1; scene.frame_end=max(2,int(duration*12))
-scene.render.image_settings.file_format="FFMPEG"
-scene.render.ffmpeg.format="MPEG4"; scene.render.ffmpeg.codec="H264"; scene.render.ffmpeg.constant_rate_factor="MEDIUM"
-scene.render.filepath=output_path
+scene.render.image_settings.file_format="PNG"
+scene.render.filepath=str(Path(output_path).with_suffix("")) + "_frame_"
 scene.world.color=(.22,.22,.22)
 scene.view_settings.view_transform="Standard"
 scene.view_settings.look="Medium High Contrast"
@@ -222,5 +223,18 @@ for obj in list(bpy.data.objects):
 
 scene.render.image_settings.color_mode="RGB"
 scene.camera.data.lens=50
-scene.render.filepath=output_path
+frame_prefix = str(Path(output_path).with_suffix("")) + "_frame_"
+scene.render.filepath=frame_prefix
 bpy.ops.render.render(animation=True)
+
+# Blender 5 no longer exposes FFmpeg as an image output format.
+# Render numbered PNG frames, then encode the scene clip with system FFmpeg.
+subprocess.run([
+    "ffmpeg", "-y", "-framerate", "12",
+    "-i", frame_prefix + "%04d.png",
+    "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
+    "-pix_fmt", "yuv420p", "-movflags", "+faststart", output_path
+], check=True)
+
+for frame in Path(output_path).parent.glob(Path(frame_prefix).name + "*.png"):
+    frame.unlink()
