@@ -181,8 +181,8 @@ elif "BLENDER_EEVEE" in available_engines:
     scene.render.engine = "BLENDER_EEVEE"
 else:
     scene.render.engine = "CYCLES"
-scene.render.resolution_x=720; scene.render.resolution_y=1280; scene.render.resolution_percentage=100
-scene.render.fps=12
+scene.render.resolution_x=360; scene.render.resolution_y=640; scene.render.resolution_percentage=100
+scene.render.fps=8
 scene.frame_start=1; scene.frame_end=max(2,int(duration*12))
 scene.render.image_settings.file_format="PNG"
 scene.render.filepath=str(Path(output_path).with_suffix("")) + "_frame_"
@@ -226,7 +226,7 @@ bpy.ops.render.render(animation=True)
 # Blender 5 no longer exposes FFmpeg as an image output format.
 # Render numbered PNG frames, then encode the scene clip with system FFmpeg.
 subprocess.run([
-    "ffmpeg", "-y", "-framerate", "12",
+    "ffmpeg", "-y", "-framerate", "8",
     "-i", frame_prefix + "%04d.png",
     "-c:v", "libx264", "-preset", "veryfast", "-crf", "22",
     "-pix_fmt", "yuv420p", "-movflags", "+faststart", output_path
