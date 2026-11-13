@@ -1,4 +1,4 @@
-name: Daily Tom and Jerry 3D Shorts
+name: Daily Cinematic Urdu Story Shorts
 
 on:
   push:
@@ -18,7 +18,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: daily-tom-jerry-short
+  group: daily-cinematic-urdu-story
   cancel-in-progress: false
 
 jobs:
@@ -44,7 +44,7 @@ jobs:
       - name: Install Python packages
         run: pip install -r requirements.txt
 
-      - name: Render and upload one private episode
+      - name: Create a new-character animated story and upload privately
         env:
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
@@ -55,7 +55,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: tom-jerry-short-output
+          name: cinematic-urdu-story-output
           path: output/
           if-no-files-found: ignore
           retention-days: 7
