@@ -38,14 +38,15 @@ def font(sz,bold=False):
  try:return ImageFont.truetype(p,sz)
  except:return ImageFont.load_default()
 
+BG_CACHE={}
 def background(scene, seed):
- im=Image.new("RGB",(W,H)); px=im.load()
+ key=scene
+ if key in BG_CACHE: return BG_CACHE[key].copy()
  top=(10,12,15); bot=(75,78,81)
- for y in range(H):
-  t=y/(H-1); c=tuple(int(top[k]*(1-t)+bot[k]*t) for k in range(3))
-  for x in range(W): px[x,y]=c
+ grad=Image.new("RGB",(1,H))
+ grad.putdata([tuple(int(top[k]*(1-y/(H-1))+bot[k]*(y/(H-1))) for k in range(3)) for y in range(H)])
+ im=grad.resize((W,H))
  d=ImageDraw.Draw(im)
- # distinct cinematic locations per scene
  if scene%6==0:
   d.ellipse((360,90,500,230),fill=(160,160,155))
  if scene%6 in (0,1):
@@ -55,15 +56,14 @@ def background(scene, seed):
  elif scene%6 in (2,3):
   for x in range(0,W,75):
    h=220+(x*7%230); d.rectangle((x,690-h,x+48,690),fill=(31,34,37))
-   for yy in range(710-h,680,48):
-    d.rectangle((x+12,yy,x+23,yy+20),fill=(115,117,115))
+   for yy in range(710-h,680,48): d.rectangle((x+12,yy,x+23,yy+20),fill=(115,117,115))
  else:
   d.rectangle((0,650,W,H),fill=(27,31,34))
   for x in range(0,W,70): d.ellipse((x,620,x+100,710),fill=(42,47,48))
- # vignette edges and film grain dots
- for _ in range(75):
-  x=random.randrange(W); y=random.randrange(H)
+ for n in range(75):
+  x=(n*73+scene*29)%W; y=(n*137+scene*41)%H
   d.point((x,y),fill=(95,96,95))
+ BG_CACHE[key]=im.copy()
  return im
 
 def character_layer(kind, x, y, scale, facing=1, mood=0):
