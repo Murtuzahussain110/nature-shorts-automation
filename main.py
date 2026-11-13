@@ -216,15 +216,8 @@ def main():
   # fixed 3.2s shots; voices trimmed to shot length in final mix
   duration=3.2
   clip=render_scene(i,duration,cast,action,day+i*17); clips.append(clip)
-  captions=[
-   f"{cast[0][0]} discovers the mystery.",
-   f"{cast[1][0]} answers and joins the plan.",
-   "A sudden chase begins!",
-   "A daring leap changes everything.",
-   "The plan goes hilariously wrong.",
-   "Together, they solve the mystery."
-  ]
-  subtitles.append(f"{i}\n{stamp(offset)} --> {stamp(offset+duration)}\n{captions[i-1]}\n"); offset+=duration
+  # Urdu subtitles match the exact dialogue spoken in this shot.
+  subtitles.append(f"{i}\\n{stamp(offset)} --> {stamp(offset+duration)}\\n{wrap_caption(dialogue,30)}\\n"); offset+=duration
  (OUT/"subtitles.srt").write_text("\n".join(subtitles),encoding="utf-8")
  (OUT/"clips.txt").write_text("\n".join("file '"+str(c.resolve())+"'" for c in clips),encoding="utf-8")
  (OUT/"audio.txt").write_text("\n".join("file '"+str(v.resolve())+"'" for v in voice_files),encoding="utf-8")
@@ -232,7 +225,7 @@ def main():
  run(["ffmpeg","-y","-loglevel","error","-f","concat","-safe","0","-i",str(OUT/"audio.txt"),"-c:a","libmp3lame","-q:a","4",str(OUT/"voices.mp3")])
  subtitle=str((OUT/"subtitles.srt").resolve()).replace("\\","/").replace(":","\\:")
  # concise two-line subtitles, quiet original ambient music bed
- run(["ffmpeg","-y","-loglevel","error","-i",str(OUT/"silent.mp4"),"-i",str(OUT/"voices.mp3"),"-f","lavfi","-i","anoisesrc=color=pink:sample_rate=44100:amplitude=0.006","-vf",f"subtitles='{subtitle}':force_style='FontName=DejaVu Sans,FontSize=13,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Alignment=2,MarginV=85'","-filter_complex","[1:a]volume=1.0[v];[2:a]lowpass=f=700,volume=0.08[m];[v][m]amix=inputs=2:duration=first[a]","-map","0:v","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-shortest","-movflags","+faststart",str(VIDEO)])
+ run(["ffmpeg","-y","-loglevel","error","-i",str(OUT/"silent.mp4"),"-i",str(OUT/"voices.mp3"),"-f","lavfi","-i","anoisesrc=color=pink:sample_rate=44100:amplitude=0.006","-vf",f"subtitles='{subtitle}':force_style='FontName=DejaVu Sans,FontSize=15,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Alignment=2,MarginV=85'","-filter_complex","[1:a]volume=1.0[v];[2:a]lowpass=f=700,volume=0.08[m];[v][m]amix=inputs=2:duration=first[a]","-map","0:v","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-shortest","-movflags","+faststart",str(VIDEO)])
  if not VIDEO.exists() or VIDEO.stat().st_size<10000: raise RuntimeError("Final video failed.")
  desc=f"{summary}\n\nA brand-new Urdu animated mini story featuring {cast[0][0]} and {cast[1][0]}. New characters and a new story every episode.\n\n#UrduStory #AnimatedShorts #Cartoon #Shorts"
  upload(VIDEO,title+" | Urdu Animated Story #Shorts",desc)
