@@ -36,10 +36,10 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install FFmpeg and Blender
+      - name: Install FFmpeg, Blender and graphics runtime libraries
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender ffmpeg fonts-dejavu-core
+          sudo apt-get install -y blender ffmpeg fonts-dejavu-core libegl1 libgl1 libgles2 libgbm1
 
       - name: Install Python packages
         run: pip install -r requirements.txt
