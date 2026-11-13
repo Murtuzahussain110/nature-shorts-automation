@@ -2,16 +2,13 @@ name: Daily Cinematic Urdu Story Shorts
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
     paths:
       - 'main.py'
-      - 'blender/render_scene.py'
       - 'requirements.txt'
       - '.github/workflows/daily.yml'
   workflow_dispatch:
   schedule:
-    # Daily at 13:00 UTC (18:00 Pakistan Standard Time)
     - cron: "0 13 * * *"
 
 permissions:
@@ -25,32 +22,26 @@ jobs:
   daily:
     runs-on: ubuntu-latest
     timeout-minutes: 45
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-
-      - name: Install FFmpeg, Blender and graphics runtime libraries
+      - name: Install FFmpeg and fonts
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender ffmpeg fonts-dejavu-core libegl1 libgl1 libgles2 libgbm1
-
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
       - name: Install Python packages
         run: pip install -r requirements.txt
-
       - name: Create a new-character animated story and upload privately
         env:
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY_STATUS: private
         run: python main.py
-
       - name: Save generated files for review
         if: always()
         uses: actions/upload-artifact@v4
