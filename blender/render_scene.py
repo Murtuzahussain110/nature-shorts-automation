@@ -66,7 +66,7 @@ def build(scene_no,duration,a,b,action,out):
     sc=bpy.context.scene; sc.render.engine="BLENDER_EEVEE"; sc.eevee.taa_render_samples=16
     sc.render.resolution_x=540; sc.render.resolution_y=960; sc.render.resolution_percentage=100; sc.render.fps=12
     sc.frame_start=1; sc.frame_end=max(24,int(duration*12))
-    sc.render.image_settings.file_format="FFMPEG"; sc.render.ffmpeg.format="MPEG4"; sc.render.ffmpeg.codec="H264"; sc.render.ffmpeg.constant_rate_factor="MEDIUM"; sc.render.filepath=str(out)
+    sc.render.image_settings.file_format="PNG"; sc.render.image_settings.color_mode="RGB"; sc.render.filepath=str(out.parent / (out.stem + "_frame_"))
     sc.view_settings.view_transform="Standard"; sc.view_settings.look="Medium High Contrast"
     world=bpy.data.worlds.new("storybook night") if not bpy.data.worlds else bpy.data.worlds[0]; sc.world=world; world.use_nodes=True
     world.node_tree.nodes["Background"].inputs[0].default_value=(.025,.045,.11,1); world.node_tree.nodes["Background"].inputs[1].default_value=.5
