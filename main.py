@@ -172,13 +172,11 @@ def wrap_caption(s,max_chars=34):
  return "\n".join(lines[:2])
 
 def render_scene(scene_no, duration, cast, action, seed):
- frames=max(24,int(duration*FPS)); pattern=FRAMES/f"s{scene_no}_%04d.jpg"
- for f in range(frames):
-  im=draw_frame(scene_no,f,frames,cast,action,seed)
-  im.save(str(FRAMES/f"s{scene_no}_{f+1:04d}.jpg"),quality=82,optimize=True)
  clip=OUT/f"clip_{scene_no}.mp4"
- run(["ffmpeg","-y","-loglevel","error","-framerate",str(FPS),"-i",str(pattern),"-c:v","libx264","-preset","ultrafast","-crf","25","-pix_fmt","yuv420p",str(clip)])
- for p in FRAMES.glob(f"s{scene_no}_*.jpg"): p.unlink()
+ script=ROOT/"blender"/"render_scene.py"
+ cmd=["blender","-b","--python-exit-code","1",str(script),"--",str(scene_no),str(duration),cast[0][3],cast[1][3],action,str(seed),str(clip)]
+ run(cmd)
+ if not clip.exists() or clip.stat().st_size<10000: raise RuntimeError("Blender did not create a valid 3D scene clip: "+str(clip))
  return clip
 
 def upload(video,title,description):
