@@ -174,7 +174,7 @@ def wrap_caption(s,max_chars=34):
 def render_scene(scene_no, duration, cast, action, seed):
  clip=OUT/f"clip_{scene_no}.mp4"
  script=ROOT/"blender"/"render_scene.py"
- cmd=["blender","-b","--python-exit-code","1",str(script),"--",str(scene_no),str(duration),cast[0][3],cast[1][3],action,str(seed),str(clip)]
+ cmd=["blender","-b","--python-exit-code","1","--python",str(script),"--",str(scene_no),str(duration),cast[0][3],cast[1][3],action,str(seed),str(clip)]
  run(cmd)
  if not clip.exists() or clip.stat().st_size<10000: raise RuntimeError("Blender did not create a valid 3D scene clip: "+str(clip))
  return clip
