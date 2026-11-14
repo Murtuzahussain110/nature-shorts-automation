@@ -149,7 +149,10 @@ def draw_frame(scene_no, frame_no, frames, cast, action, seed):
  return im.convert("RGB")
 
 def run(cmd):
- subprocess.run(cmd,check=True,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+ p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+ if p.returncode:
+  detail=(p.stderr or p.stdout or "No FFmpeg diagnostic output").strip()
+  raise RuntimeError(f"Command failed ({p.returncode}): {' '.join(map(str,cmd))}\n{detail[-6000:]}")
 
 async def make_voice(text,dest,voice):
  await edge_tts.Communicate(text=text,voice=voice,rate="-2%").save(str(dest))
