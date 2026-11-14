@@ -114,7 +114,7 @@ def build(scene_no,duration,a,b,action,out):
     sc.render.resolution_x=540; sc.render.resolution_y=960; sc.render.resolution_percentage=100; sc.render.fps=12
     sc.frame_start=1; sc.frame_end=max(24,int(duration*12))
     sc.render.image_settings.file_format="PNG"; sc.render.image_settings.color_mode="RGB"; sc.render.filepath=str(out.parent / (out.stem + "_frame_"))
-    sc.view_settings.view_transform="Standard"; sc.view_settings.look="AgX - Medium High Contrast"
+    sc.view_settings.view_transform="Standard"; sc.view_settings.look="Medium High Contrast"
     world=bpy.data.worlds.new("storybook night") if not bpy.data.worlds else bpy.data.worlds[0]; sc.world=world; world.use_nodes=True
     world.node_tree.nodes["Background"].inputs[0].default_value=(.025,.045,.11,1); world.node_tree.nodes["Background"].inputs[1].default_value=.5
     ground=material("deep teal ground",(.035,.16,.18)); bark=material("tree bark",(.19,.09,.055)); leaves=material("forest canopy",(.035,.22,.15)); hill=material("distant hills",(.07,.29,.25)); magic=material("glowing golden story clue",(1,.55,.08),2)
