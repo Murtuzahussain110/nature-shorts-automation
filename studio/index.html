@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827"><meta name="description" content="Mobile-first Urdu cartoon story studio">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>Cartoon Story Studio</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--panel:#141f31;--line:#26364d;--muted:#9aabc2;--gold:#ffd166;--white:#f5f7fb;--green:#6ee7b7}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 0,#1c3150 0,transparent 38%),var(--bg);color:var(--white);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
+main{width:min(760px,100%);margin:auto;padding:22px 16px 48px}.brand{display:flex;align-items:center;gap:12px;margin:8px 0 22px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,#ffd166,#f97316);display:grid;place-items:center;color:#182033;font-size:25px}.eyebrow{color:var(--gold);font-size:12px;letter-spacing:2px;font-weight:800}.brand h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
+.notice{border:1px solid #765c26;background:#322914;border-radius:14px;padding:13px 14px;color:#ffe6ad;font-size:13px;margin-bottom:18px}
+.panel{background:linear-gradient(160deg,#172438,#111b2b);border:1px solid var(--line);border-radius:18px;padding:17px;margin:14px 0;box-shadow:0 12px 30px #0002}
+h2{font-size:17px;margin:0 0 13px}label{display:block;font-size:13px;color:#bdc9d9;margin:12px 0 6px}
+input,select,textarea{width:100%;border:1px solid #344760;background:#0d1726;color:white;border-radius:11px;padding:12px;font:inherit;font-size:15px;outline:none}textarea{min-height:76px;resize:vertical}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:0;border-radius:12px;padding:13px 15px;font-weight:800;font-size:15px;background:var(--gold);color:#182033;width:100%;margin-top:14px}.btn.secondary{background:#25364d;color:#eef4ff;border:1px solid #405674}.btn:active{transform:scale(.99)}
+.small{font-size:12px;color:var(--muted)}.result{white-space:pre-wrap;background:#0b1422;border:1px solid #2b3b53;border-radius:12px;padding:13px;font-size:14px;min-height:80px;overflow-wrap:anywhere}
+.preview{background:#080e18;border:1px solid #344760;border-radius:16px;aspect-ratio:9/16;max-height:430px;margin:12px auto;display:flex;flex-direction:column;justify-content:space-between;padding:20px 12px;width:min(240px,70%);text-align:center;overflow:hidden}
+.scene{flex:1;display:grid;place-items:center;font-size:70px;animation:bob 2.2s ease-in-out infinite}.caption{font-size:12px;line-height:1.35;background:#000b;border-radius:8px;padding:7px 5px;margin-bottom:5px}
+@keyframes bob{50%{transform:translateY(-9px) rotate(-2deg)}}footer{text-align:center;color:#75869d;font-size:12px;margin-top:24px}
+@media(max-width:430px){main{padding:16px 13px 38px}.grid{grid-template-columns:1fr 1fr}.panel{padding:14px}}
+</style></head>
+<body><main>
+<header class="brand"><div class="logo">🎬</div><div><div class="eyebrow">MOBILE CARTOON STUDIO</div><h1>Urdu Story Shorts</h1><p class="sub">Apni next cartoon episode ki planning yahan karo</p></div></header>
+<div class="notice"><b>Honest status:</b> Yeh pehla mobile studio version hai. Story, dialogue, subtitles aur prompts tayyar karta hai. Asli AI video-rendering engine abhi connected nahi — is liye abhi MP4 generate hone ka jhoota claim nahi karta.</div>
+<section class="panel"><h2>1. Episode setup</h2>
+<label>Story idea</label><input id="idea" placeholder="Misal: jungle mein kho gaya jadui parinda">
+<div class="grid"><div><label>Story mood</label><select id="mood"><option>Funny adventure</option><option>Heartwarming</option><option>Mystery</option><option>Action adventure</option><option>Magical</option></select></div><div><label>Duration</label><select id="duration"><option value="30">30 seconds</option><option value="45" selected>45 seconds</option><option value="60">60 seconds</option></select></div></div>
+<div class="grid"><div><label>Voice language</label><select id="voice"><option>Urdu (Pakistan)</option><option>Urdu + English</option></select></div><div><label>Visual style</label><select id="style"><option>Cinematic 3D cartoon</option><option>Stylized 3D family animation</option><option>Soft 2.5D storybook</option></select></div></div>
+<label>Character types (new cast each episode)</label><input id="cast" placeholder="Misal: baby dragon aur clever rabbit">
+<button class="btn" id="make">Create story draft</button>
+</section>
+<section class="panel"><h2>2. Story & dialogue</h2><div id="story" class="result">Your story draft will appear here.</div><button class="btn secondary" id="copyStory">Copy story</button></section>
+<section class="panel"><h2>3. Short-video prompt</h2><div id="prompt" class="result">Create a story first.</div><button class="btn secondary" id="copyPrompt">Copy video prompt</button></section>
+<section class="panel"><h2>4. Mobile preview (layout sample)</h2><div class="preview"><div class="small">EPISODE PREVIEW • 9:16</div><div class="scene" id="emoji">🐉 🐰</div><div class="caption" id="caption">Yahan Urdu subtitle do chhoti lines mein nazar aayega.</div></div><p class="small">Yeh sirf subtitle/layout preview hai, final animated video nahi.</p><button class="btn secondary" id="download">Download story .txt</button></section>
+<footer>Free-first prototype • No paid API • No credits spent</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);let latest='';
+const plots=[
+{title:'The Lost Firefly',urdu:'گمشدہ جگنو',lines:['رات کے جنگل میں ایک ننھا جگنو راستہ بھول گیا۔','فکر مت کرو، ہم تمہیں گھر پہنچائیں گے۔','لیکن دریا کا پل تو ٹوٹا ہوا ہے!','دونوں نے لکڑیوں سے چھوٹا سا راستہ بنایا۔','جگنو نے اپنی روشنی سے پورا جنگل جگمگا دیا۔','اور سب دوست خوشی سے گھر لوٹ آئے۔'],action:'The friends discover a lost firefly, build a safe crossing and guide it home.'},
+{title:'The Runaway Mango',urdu:'بھاگتا ہوا آم',lines:['درخت سے ایک سنہری آم نیچے گرا۔','یہ آم تو خود ہی بھاگ رہا ہے!','جلدی پکڑو، ورنہ پہاڑی سے نیچے چلا جائے گا!','دونوں دوست ہنستے ہوئے اس کے پیچھے دوڑے۔','آم ایک ننھے بندر کے پاس جا رکا۔','انہوں نے آم تین حصوں میں بانٹ لیا۔'],action:'A magical mango rolls downhill and two friends chase it before sharing it with a little monkey.'},
+{title:'The Cloud Boat',urdu:'بادلوں کی کشتی',lines:['آسمان سے ایک نرم بادل نیچے اتر آیا۔','کیا ہم اس پر بیٹھ کر سفر کر سکتے ہیں؟','ہاں، مگر مضبوطی سے پکڑ کر بیٹھنا!','بادل انہیں رنگین پہاڑوں کے اوپر لے گیا۔','اچانک تیز ہوا نے کشتی کو گھما دیا۔','دوستی نے انہیں بحفاظت گھر پہنچا دیا۔'],action:'Two friends ride a cloud boat over rainbow mountains and work together through a sudden gust.'}
+];
+const casts=[['🐉','🐰'],['🦊','🐻'],['🐱','🐦'],['🐸','🦋'],['🐼','🦄'],['🐵','🐢']];
+function make(){const p=plots[Math.floor(Math.random()*plots.length)],idea=$('idea').value.trim()||p.title,cast=$('cast').value.trim()||'a tiny fox and a brave rabbit',du=$('duration').value,cs=casts[Math.floor(Math.random()*casts.length)];
+let story='EPISODE: '+idea+'\nMood: '+$('mood').value+' | Duration: '+du+' sec\nCharacters: '+cast+'\n\nSCENE-BY-SCENE URDU DIALOGUE\n'+p.lines.map((x,i)=>'Scene '+(i+1)+': '+x).join('\n')+'\n\nENDING\nA warm, funny ending about friendship and helping each other.';
+let prompt='Create a '+du+'-second vertical 9:16 '+$('style').value+' animated family cartoon. Original new character designs for: '+cast+'. Story idea: '+idea+'. '+p.action+'\nUse expressive character acting, clear body movement, changing camera shots, consistent character appearance, cinematic lighting and detailed environments. Urdu (Pakistan) dialogue, distinct character voices, accurate lip-sync. Add only small white Urdu subtitles at the bottom, maximum two lines, with subtle dark outline. Gentle original background music and sound effects. No static slideshow, no giant captions, no logos, no watermark.';
+latest=story+'\n\nVIDEO PROMPT\n'+prompt;$('story').textContent=story;$('prompt').textContent=prompt;$('emoji').textContent=cs.join('  ');$('caption').textContent=p.lines[0];}
+$('make').onclick=make;
+async function copy(id){try{await navigator.clipboard.writeText($(id).textContent);alert('Copied!')}catch(e){alert('Copy supported nahi hua. Text select karke copy kar lo.')}}
+$('copyStory').onclick=()=>copy('story');$('copyPrompt').onclick=()=>copy('prompt');
+$('download').onclick=()=>{if(!latest){make()}const a=document.createElement('a'),u=URL.createObjectURL(new Blob([latest],{type:'text/plain;charset=utf-8'}));a.href=u;a.download='cartoon-episode.txt';a.click();URL.revokeObjectURL(u)};
+if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+</script></body></html>
