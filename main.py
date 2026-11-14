@@ -194,8 +194,7 @@ def upload(video,title,description):
  print("PRIVATE VIDEO:", "https://www.youtube.com/watch?v="+response["id"],flush=True)
 
 def main():
- if not os.getenv("YOUTUBE_CLIENT_JSON") or not os.getenv("YOUTUBE_REFRESH_TOKEN"):
-  raise RuntimeError("YouTube secrets are missing; add the existing GitHub secrets.")
+ 
  day=datetime.now(timezone.utc).date().toordinal()
  override=os.getenv("STORY_INDEX")
  idx=int(override) if override is not None else day
@@ -230,9 +229,14 @@ def main():
  run(["ffmpeg","-y","-loglevel","error","-f","concat","-safe","0","-i",str(OUT/"audio.txt"),"-c:a","libmp3lame","-q:a","4",str(OUT/"voices.mp3")])
  subtitle=str((OUT/"subtitles.srt").resolve()).replace("\\","/").replace(":","\\:")
  # concise two-line subtitles, quiet original ambient music bed
- run(["ffmpeg","-y","-loglevel","error","-i",str(OUT/"silent.mp4"),"-i",str(OUT/"voices.mp3"),"-f","lavfi","-i","anoisesrc=color=pink:sample_rate=44100:amplitude=0.006","-vf",f"subtitles='{subtitle}':force_style='FontName=DejaVu Sans,FontSize=15,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Alignment=2,MarginV=85'","-filter_complex","[1:a]volume=1.0[v];[2:a]lowpass=f=700,volume=0.08[m];[v][m]amix=inputs=2:duration=first[a]","-map","0:v","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-shortest","-movflags","+faststart",str(VIDEO)])
+ run(["ffmpeg","-y","-loglevel","error","-i",str(OUT/"silent.mp4"),"-i",str(OUT/"voices.mp3"),"-f","lavfi","-i","anoisesrc=color=pink:sample_rate=44100:amplitude=0.006","-vf",f"subtitles='{subtitle}':force_style='FontName=Noto Naskh Arabic,FontSize=19,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Alignment=2,MarginV=85'","-filter_complex","[1:a]volume=1.0[v];[2:a]lowpass=f=700,volume=0.08[m];[v][m]amix=inputs=2:duration=first[a]","-map","0:v","-map","[a]","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-shortest","-movflags","+faststart",str(VIDEO)])
  if not VIDEO.exists() or VIDEO.stat().st_size<10000: raise RuntimeError("Final video failed.")
  desc=f"{summary}\n\nA brand-new Urdu animated mini story featuring {cast[0][0]} and {cast[1][0]}. New characters and a new story every episode.\n\n#UrduStory #AnimatedShorts #Cartoon #Shorts"
- upload(VIDEO,title+" | Urdu Animated Story #Shorts",desc)
+ if os.getenv("YOUTUBE_UPLOAD_ENABLED","").lower()=="true":
+  if not os.getenv("YOUTUBE_CLIENT_JSON") or not os.getenv("YOUTUBE_REFRESH_TOKEN"):
+   raise RuntimeError("YouTube upload was enabled but OAuth secrets are missing.")
+  upload(VIDEO,title+" | Urdu Animated Story #Shorts",desc)
+ else:
+  print("REVIEW REQUIRED: render saved as output/daily_story.mp4; upload intentionally paused until the new visual quality is approved.",flush=True)
 
 if __name__=="__main__": main()
