@@ -176,7 +176,10 @@ def render_scene(scene_no, duration, cast, action, seed):
  script=ROOT/"blender"/"render_scene.py"
  cmd=["blender","-b","--python-exit-code","1","--python",str(script),"--",str(scene_no),str(duration),cast[0][3],cast[1][3],action,str(seed),str(clip)]
  run(cmd)
- if not clip.exists() or clip.stat().st_size<10000: raise RuntimeError("Blender did not create a valid 3D scene clip: "+str(clip))
+ frame_prefix=OUT/f"clip_{scene_no}_frame_"
+ run(["ffmpeg","-y","-framerate","12","-start_number","1","-i",str(frame_prefix)+"%04d.png","-c:v","libx264","-preset","veryfast","-crf","23","-pix_fmt","yuv420p","-movflags","+faststart",str(clip)])
+ if not clip.exists() or clip.stat().st_size<10000: raise RuntimeError("FFmpeg did not create a valid 3D scene clip: "+str(clip))
+ for frame in OUT.glob(f"clip_{scene_no}_frame_*.png"): frame.unlink()
  return clip
 
 def upload(video,title,description):
