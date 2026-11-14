@@ -169,7 +169,7 @@ def wrap_caption(s,max_chars=34):
   if len(test)>max_chars and line: lines.append(line); line=w
   else: line=test
  if line: lines.append(line)
- return "\\N".join(lines[:2])
+ return "\n".join(lines[:2])
 
 def render_scene(scene_no, duration, cast, action, seed):
  frames=max(24,int(duration*FPS)); pattern=FRAMES/f"s{scene_no}_%04d.jpg"
@@ -220,8 +220,9 @@ def main():
   duration=3.2
   clip=render_scene(i,duration,cast,action,day+i*17); clips.append(clip)
   # Urdu subtitles match the exact dialogue spoken in this shot.
-  subtitles.append(f"{i}\\n{stamp(offset)} --> {stamp(offset+duration)}\\n{wrap_caption(dialogue,30)}\\n"); offset+=duration
+  subtitles.append(f"{i}\n{stamp(offset)} --> {stamp(offset+duration)}\n{wrap_caption(dialogue,30)}\n"); offset+=duration
  (OUT/"subtitles.srt").write_text("\n".join(subtitles),encoding="utf-8")
+ if not (OUT/"subtitles.srt").is_file() or (OUT/"subtitles.srt").stat().st_size < 20: raise RuntimeError("Subtitle file was not created correctly.")
  (OUT/"clips.txt").write_text("\n".join("file '"+str(c.resolve())+"'" for c in clips),encoding="utf-8")
  (OUT/"audio.txt").write_text("\n".join("file '"+str(v.resolve())+"'" for v in voice_files),encoding="utf-8")
  run(["ffmpeg","-y","-loglevel","error","-f","concat","-safe","0","-i",str(OUT/"clips.txt"),"-c","copy",str(OUT/"silent.mp4")])
