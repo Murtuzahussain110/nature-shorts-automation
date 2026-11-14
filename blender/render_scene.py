@@ -110,8 +110,8 @@ def animate(parts,sc,action,side):
 
 def build(scene_no,duration,a,b,action,out):
     bpy.ops.object.select_all(action="SELECT"); bpy.ops.object.delete(use_global=False)
-    sc=bpy.context.scene; sc.render.engine="BLENDER_EEVEE"; sc.eevee.taa_render_samples=32
-    sc.render.resolution_x=540; sc.render.resolution_y=960; sc.render.resolution_percentage=100; sc.render.fps=12
+    sc=bpy.context.scene; sc.render.engine="BLENDER_EEVEE"; sc.eevee.taa_render_samples=8
+    sc.render.resolution_x=540; sc.render.resolution_y=960; sc.render.resolution_percentage=80; sc.render.fps=12
     sc.frame_start=1; sc.frame_end=max(24,int(duration*12))
     sc.render.image_settings.file_format="PNG"; sc.render.image_settings.color_mode="RGB"; sc.render.filepath=str(out.parent / (out.stem + "_frame_"))
     sc.view_settings.view_transform="Standard"; sc.view_settings.look="Medium High Contrast"
