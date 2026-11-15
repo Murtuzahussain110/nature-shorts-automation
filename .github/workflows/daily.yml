@@ -2,7 +2,7 @@ name: Daily Cinematic Urdu Story Shorts
 
 on:
   push:
-    branches: [main]
+    branches: [main, mobile-cartoon-studio]
     paths:
       - 'main.py'
       - 'blender/**'
