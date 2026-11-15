@@ -223,8 +223,9 @@ def main():
  clips=[]; voice_files=[]; subtitles=[]; offset=0.0
  for i,(speaker,dialogue,action) in enumerate(scenes,1):
   voice=AUDIO/f"voice_{i}.mp3"; asyncio.run(make_voice(dialogue,voice,VOICE_A if speaker==0 else VOICE_B)); voice_files.append(voice)
-  # fixed 3.2s shots; voices trimmed to shot length in final mix
-  duration=3.2
+  # Size each illustrated shot to the real Urdu speech duration so dialogue is not cut off.
+  probe=subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",str(voice)],check=True,capture_output=True,text=True)
+  duration=max(3.2,float(probe.stdout.strip())+0.15)
   clip=render_scene(i,duration,cast,action,day+i*17); clips.append(clip)
   # Urdu subtitles match the exact dialogue spoken in this shot.
   subtitles.append(f"{i}\n{stamp(offset)} --> {stamp(offset+duration)}\n{wrap_caption(dialogue,30)}\n"); offset+=duration
