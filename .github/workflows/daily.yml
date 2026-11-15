@@ -44,6 +44,25 @@ jobs:
           YOUTUBE_PRIVACY_STATUS: private
           YOUTUBE_UPLOAD_ENABLED: false
         run: python main.py
+      - name: Verify MP4 video, audio, subtitles and portrait format
+        if: success()
+        run: |
+          test -s output/daily_story.mp4
+          test -s output/subtitles.srt
+          python - <<'PY'
+          import json, subprocess
+          p = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", "output/daily_story.mp4"], check=True, capture_output=True, text=True)
+          data = json.loads(p.stdout)
+          streams = data.get("streams", [])
+          video = next((s for s in streams if s.get("codec_type") == "video"), None)
+          audio = next((s for s in streams if s.get("codec_type") == "audio"), None)
+          assert video, "MP4 has no video stream"
+          assert audio, "MP4 has no Urdu voice/audio stream"
+          assert int(video["width"]) < int(video["height"]), "Video is not portrait 9:16"
+          duration = float(data["format"]["duration"])
+          assert duration >= 15, f"Video too short: {duration:.2f}s"
+          print(f"VERIFIED: {video['width']}x{video['height']}, {duration:.2f}s, video+audio streams, subtitles present")
+          PY
       - name: Save generated files for review
         if: always()
         uses: actions/upload-artifact@v4
