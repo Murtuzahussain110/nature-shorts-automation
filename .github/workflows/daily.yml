@@ -47,7 +47,7 @@ jobs:
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY_STATUS: private
-          YOUTUBE_UPLOAD_ENABLED: false
+          YOUTUBE_UPLOAD_ENABLED: true
         run: python main.py
       - name: Verify MP4 video, audio, subtitles and portrait format
         if: success()
