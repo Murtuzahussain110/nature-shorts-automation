@@ -87,7 +87,8 @@ def character_layer(kind, x, y, scale, facing=1, mood=0):
  }
  base,light,dark=palettes.get(kind,palettes["bear"])
  gold=(255,211,112,255)
- def box(coords): return tuple(int(v*s) for v in coords)
+ def box(coords):
+  return (int(cx+(coords[0]-cx)*s),int(cy+(coords[1]-cy)*s),int(cx+(coords[2]-cx)*s),int(cy+(coords[3]-cy)*s))
  # soft shadow
  d.ellipse(box((cx-64,cy+119,cx+64,cy+145)),fill=(0,0,0,65))
  # tail first, behind body
@@ -102,11 +103,11 @@ def character_layer(kind, x, y, scale, facing=1, mood=0):
     d.ellipse(box((ex-14,cy-164,ex+14,cy-63)),fill=base+(255,),outline=dark+(255,),width=max(2,int(4*s)))
     d.ellipse(box((ex-7,cy-151,ex+7,cy-75)),fill=(239,145,153,255))
    elif kind=="deer":
-    d.polygon([(int(ex),int((cy-74)*s)),(int((ex+side*20*s)),int((cy-147)*s)),(int((ex+side*37*s)),int((cy-139)*s)),(int((ex+side*15*s)),int((cy-105)*s))],fill=base+(255,),outline=dark+(255,))
+    d.polygon([(int(cx+(ex-cx)*s),int(cy-74*s)),(int(cx+(ex+side*20*s-cx)*s),int(cy-147*s)),(int(cx+(ex+side*37*s-cx)*s),int(cy-139*s)),(int(cx+(ex+side*15*s-cx)*s),int(cy-105*s))],fill=base+(255,),outline=dark+(255,))
    elif kind=="dragon":
-    d.polygon([(int(ex-12*s),int((cy-70)*s)),(int(ex),int((cy-133)*s)),(int(ex+16*s),int((cy-69)*s))],fill=base+(255,),outline=dark+(255,))
+    d.polygon([(int(cx+(ex-12*s-cx)*s),int(cy-70*s)),(int(cx+(ex-cx)*s),int(cy-133*s)),(int(cx+(ex+16*s-cx)*s),int(cy-69*s))],fill=base+(255,),outline=dark+(255,))
    else:
-    d.polygon([(int(ex-16*s),int((cy-70)*s)),(int(ex),int((cy-137)*s)),(int(ex+19*s),int((cy-69)*s))],fill=base+(255,),outline=dark+(255,))
+    d.polygon([(int(cx+(ex-16*s-cx)*s),int(cy-70*s)),(int(cx+(ex-cx)*s),int(cy-137*s)),(int(cx+(ex+19*s-cx)*s),int(cy-69*s))],fill=base+(255,),outline=dark+(255,))
  # body with belly patch
  d.ellipse(box((cx-46,cy-4,cx+46,cy+113)),fill=base+(255,),outline=dark+(255,),width=max(2,int(5*s)))
  d.ellipse(box((cx-25,cy+34,cx+25,cy+99)),fill=light+(255,))
