@@ -1,4 +1,4 @@
-name: Daily Cinematic Urdu Story Shorts
+name: Daily Urdu Cartoon Story Shorts
 
 on:
   pull_request:
@@ -11,7 +11,6 @@ on:
     branches: [main]
     paths:
       - 'main.py'
-      - 'blender/**'
       - 'requirements.txt'
       - '.github/workflows/daily.yml'
   workflow_dispatch:
@@ -22,7 +21,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: daily-cinematic-urdu-story
+  group: daily-urdu-cartoon-story
   cancel-in-progress: false
 
 jobs:
@@ -40,22 +39,40 @@ jobs:
       - name: Install FFmpeg and fonts
         run: |
           sudo apt-get update
-          sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-noto-core blender libegl1 libgl1 libxrender1 libxi6 libxkbcommon0
-          blender --version
+          sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-noto-core
       - name: Install Python packages
         run: pip install -r requirements.txt
-      - name: Create a new-character animated story for visual review
+      - name: Create Urdu story video for visual review
         env:
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY_STATUS: private
           YOUTUBE_UPLOAD_ENABLED: false
         run: python main.py
+      - name: Verify MP4 video, audio, subtitles and portrait format
+        if: success()
+        run: |
+          test -s output/daily_story.mp4
+          test -s output/subtitles.srt
+          python - <<'PY'
+          import json, subprocess
+          p = subprocess.run(["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", "output/daily_story.mp4"], check=True, capture_output=True, text=True)
+          data = json.loads(p.stdout)
+          streams = data.get("streams", [])
+          video = next((s for s in streams if s.get("codec_type") == "video"), None)
+          audio = next((s for s in streams if s.get("codec_type") == "audio"), None)
+          assert video, "MP4 has no video stream"
+          assert audio, "MP4 has no voice/audio stream"
+          assert int(video["width"]) < int(video["height"]), "Video is not portrait"
+          duration = float(data["format"]["duration"])
+          assert duration >= 15, f"Video too short: {duration:.2f}s"
+          print(f"VERIFIED: {video['width']}x{video['height']}, {duration:.2f}s, video+audio streams, subtitles present")
+          PY
       - name: Save generated files for review
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cinematic-urdu-story-output
+          name: urdu-cartoon-story-output
           path: output/
           if-no-files-found: ignore
           retention-days: 7
