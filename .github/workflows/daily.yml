@@ -1,6 +1,12 @@
 name: Daily Cinematic Urdu Story Shorts
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'main.py'
+      - 'requirements.txt'
+      - '.github/workflows/daily.yml'
   push:
     branches: [main]
     paths:
