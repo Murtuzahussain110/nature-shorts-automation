@@ -172,14 +172,21 @@ def wrap_caption(s,max_chars=34):
  return "\n".join(lines[:2])
 
 def render_scene(scene_no, duration, cast, action, seed):
+ # Render the story as illustrated 2D scene frames with subtle character motion.
+ # This avoids the Blender runtime failure and matches the reference format:
+ # illustrated scenes + Urdu narration + gentle movement, not primitive 3D meshes.
  clip=OUT/f"clip_{scene_no}.mp4"
- script=ROOT/"blender"/"render_scene.py"
- cmd=["blender","-b","--python-exit-code","1","--python",str(script),"--",str(scene_no),str(duration),cast[0][3],cast[1][3],action,str(seed),str(clip)]
- run(cmd)
- frame_prefix=OUT/f"clip_{scene_no}_frame_"
- run(["ffmpeg","-y","-framerate","12","-start_number","1","-i",str(frame_prefix)+"%04d.png","-c:v","libx264","-preset","veryfast","-crf","23","-pix_fmt","yuv420p","-movflags","+faststart",str(clip)])
- if not clip.exists() or clip.stat().st_size<10000: raise RuntimeError("FFmpeg did not create a valid 3D scene clip: "+str(clip))
- for frame in OUT.glob(f"clip_{scene_no}_frame_*.png"): frame.unlink()
+ total_frames=max(1,int(round(duration*FPS)))
+ FRAMES.mkdir(parents=True,exist_ok=True)
+ for frame_no in range(1,total_frames+1):
+  frame=draw_frame(scene_no,frame_no,total_frames,cast,action,seed)
+  frame.save(FRAMES/f"scene_{scene_no}_{frame_no:04d}.png",quality=92)
+ frame_prefix=FRAMES/f"scene_{scene_no}_"
+ run(["ffmpeg","-y","-loglevel","error","-framerate",str(FPS),"-start_number","1","-i",str(frame_prefix)+"%04d.png","-c:v","libx264","-preset","veryfast","-crf","23","-pix_fmt","yuv420p","-movflags","+faststart",str(clip)])
+ if not clip.exists() or clip.stat().st_size<10000:
+  raise RuntimeError("FFmpeg did not create a valid illustrated scene clip: "+str(clip))
+ for frame in FRAMES.glob(f"scene_{scene_no}_*.png"):
+  frame.unlink()
  return clip
 
 def upload(video,title,description):
@@ -216,8 +223,9 @@ def main():
  clips=[]; voice_files=[]; subtitles=[]; offset=0.0
  for i,(speaker,dialogue,action) in enumerate(scenes,1):
   voice=AUDIO/f"voice_{i}.mp3"; asyncio.run(make_voice(dialogue,voice,VOICE_A if speaker==0 else VOICE_B)); voice_files.append(voice)
-  # fixed 3.2s shots; voices trimmed to shot length in final mix
-  duration=3.2
+  # Size each illustrated shot to the real Urdu speech duration so dialogue is not cut off.
+  probe=subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",str(voice)],check=True,capture_output=True,text=True)
+  duration=max(3.2,float(probe.stdout.strip())+0.15)
   clip=render_scene(i,duration,cast,action,day+i*17); clips.append(clip)
   # Urdu subtitles match the exact dialogue spoken in this shot.
   subtitles.append(f"{i}\n{stamp(offset)} --> {stamp(offset+duration)}\n{wrap_caption(dialogue,30)}\n"); offset+=duration
