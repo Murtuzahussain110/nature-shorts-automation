@@ -22,7 +22,7 @@ input,select,textarea{width:100%;border:1px solid #344760;background:#0d1726;col
 </style></head>
 <body><main>
 <header class="brand"><div class="logo">🎬</div><div><div class="eyebrow">MOBILE CARTOON STUDIO</div><h1>Urdu Story Shorts</h1><p class="sub">Apni next cartoon episode ki planning yahan karo</p></div></header>
-<div class="notice"><b>Honest status:</b> Yeh pehla mobile studio version hai. Story, dialogue, subtitles aur prompts tayyar karta hai. Asli AI video-rendering engine abhi connected nahi — is liye abhi MP4 generate hone ka jhoota claim nahi karta.</div>
+<div class="notice"><b>Free-only mode:</b> Is studio se koi paid API, subscription ya credit automatically use nahi hoga. Story, Urdu dialogue, subtitles aur video prompts tayyar ho sakte hain. <b>Real AI MP4 generation abhi available nahi</b> kyun ke account par is ka verified free video quota nahi mila. Paid fallback band hai.</div>
 <section class="panel"><h2>1. Episode setup</h2>
 <label>Story idea</label><input id="idea" placeholder="Misal: jungle mein kho gaya jadui parinda">
 <div class="grid"><div><label>Story mood</label><select id="mood"><option>Funny adventure</option><option>Heartwarming</option><option>Mystery</option><option>Action adventure</option><option>Magical</option></select></div><div><label>Duration</label><select id="duration"><option value="30">30 seconds</option><option value="45" selected>45 seconds</option><option value="60">60 seconds</option></select></div></div>
@@ -32,8 +32,8 @@ input,select,textarea{width:100%;border:1px solid #344760;background:#0d1726;col
 </section>
 <section class="panel"><h2>2. Story & dialogue</h2><div id="story" class="result">Your story draft will appear here.</div><button class="btn secondary" id="copyStory">Copy story</button></section>
 <section class="panel"><h2>3. Short-video prompt</h2><div id="prompt" class="result">Create a story first.</div><button class="btn secondary" id="copyPrompt">Copy video prompt</button></section>
-<section class="panel"><h2>4. Mobile preview (layout sample)</h2><div class="preview"><div class="small">EPISODE PREVIEW • 9:16</div><div class="scene" id="emoji">🐉 🐰</div><div class="caption" id="caption">Yahan Urdu subtitle do chhoti lines mein nazar aayega.</div></div><p class="small">Yeh sirf subtitle/layout preview hai, final animated video nahi.</p><button class="btn secondary" id="download">Download story .txt</button></section>
-<footer>Free-first prototype • No paid API • No credits spent</footer>
+<section class="panel"><h2>4. Video generation status</h2><div class="result">🔒 FREE-ONLY SAFETY ON\n\nPaid generation: BLOCKED\nFree AI video engine: Not connected\nMP4 export: Not available yet\n\nJab verified free AI video quota/engine available hoga tabhi is button ko enable kiya jayega. Aapke credits aur payment method ko touch nahi kiya jayega.</div><p class="small">Yeh status jaan-boojh kar clear rakha gaya hai — prompt ya emoji preview ko generated video nahi kaha jayega.</p></section>\n<section class="panel"><h2>5. Mobile preview (layout sample)</h2><div class="preview"><div class="small">EPISODE PREVIEW • 9:16</div><div class="scene" id="emoji">🐉 🐰</div><div class="caption" id="caption">Yahan Urdu subtitle do chhoti lines mein nazar aayega.</div></div><p class="small">Yeh sirf subtitle/layout preview hai, final animated video nahi.</p><button class="btn secondary" id="download">Download story .txt</button></section>
+<footer>Free-only safeguards • No paid API • No automatic credit use</footer>
 </main>
 <script>
 const $=id=>document.getElementById(id);let latest='';
