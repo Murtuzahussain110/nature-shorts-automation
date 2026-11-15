@@ -1,55 +1,81 @@
 <!doctype html>
-<html lang="en">
+<html lang="ur">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#101827"><meta name="description" content="Mobile-first Urdu cartoon story studio">
-<link rel="manifest" href="./manifest.webmanifest">
-<title>Cartoon Story Studio</title>
+<meta name="theme-color" content="#101827"><meta name="description" content="Free Urdu cartoon episode studio">
+<title>Urdu Cartoon Episode Studio</title>
 <style>
 :root{color-scheme:dark;--bg:#0b1220;--panel:#141f31;--line:#26364d;--muted:#9aabc2;--gold:#ffd166;--white:#f5f7fb;--green:#6ee7b7}
 *{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 85% 0,#1c3150 0,transparent 38%),var(--bg);color:var(--white);font:16px/1.5 system-ui,-apple-system,Segoe UI,sans-serif}
-main{width:min(760px,100%);margin:auto;padding:22px 16px 48px}.brand{display:flex;align-items:center;gap:12px;margin:8px 0 22px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,#ffd166,#f97316);display:grid;place-items:center;color:#182033;font-size:25px}.eyebrow{color:var(--gold);font-size:12px;letter-spacing:2px;font-weight:800}.brand h1{font-size:22px;margin:0}.sub{color:var(--muted);font-size:14px;margin:2px 0 0}
-.notice{border:1px solid #765c26;background:#322914;border-radius:14px;padding:13px 14px;color:#ffe6ad;font-size:13px;margin-bottom:18px}
-.panel{background:linear-gradient(160deg,#172438,#111b2b);border:1px solid var(--line);border-radius:18px;padding:17px;margin:14px 0;box-shadow:0 12px 30px #0002}
-h2{font-size:17px;margin:0 0 13px}label{display:block;font-size:13px;color:#bdc9d9;margin:12px 0 6px}
-input,select,textarea{width:100%;border:1px solid #344760;background:#0d1726;color:white;border-radius:11px;padding:12px;font:inherit;font-size:15px;outline:none}textarea{min-height:76px;resize:vertical}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{border:0;border-radius:12px;padding:13px 15px;font-weight:800;font-size:15px;background:var(--gold);color:#182033;width:100%;margin-top:14px}.btn.secondary{background:#25364d;color:#eef4ff;border:1px solid #405674}.btn:active{transform:scale(.99)}
-.small{font-size:12px;color:var(--muted)}.result{white-space:pre-wrap;background:#0b1422;border:1px solid #2b3b53;border-radius:12px;padding:13px;font-size:14px;min-height:80px;overflow-wrap:anywhere}
-.preview{background:#080e18;border:1px solid #344760;border-radius:16px;aspect-ratio:9/16;max-height:430px;margin:12px auto;display:flex;flex-direction:column;justify-content:space-between;padding:20px 12px;width:min(240px,70%);text-align:center;overflow:hidden}
-.scene{flex:1;display:grid;place-items:center;font-size:70px;animation:bob 2.2s ease-in-out infinite}.caption{font-size:12px;line-height:1.35;background:#000b;border-radius:8px;padding:7px 5px;margin-bottom:5px}
-@keyframes bob{50%{transform:translateY(-9px) rotate(-2deg)}}footer{text-align:center;color:#75869d;font-size:12px;margin-top:24px}
-@media(max-width:430px){main{padding:16px 13px 38px}.grid{grid-template-columns:1fr 1fr}.panel{padding:14px}}
+main{width:min(780px,100%);margin:auto;padding:20px 14px 48px}.brand{display:flex;align-items:center;gap:12px;margin:8px 0 20px}.logo{width:46px;height:46px;border-radius:15px;background:linear-gradient(135deg,#ffd166,#f97316);display:grid;place-items:center;color:#182033;font-size:25px}.eyebrow{color:var(--gold);font-size:12px;letter-spacing:2px;font-weight:800}.brand h1{font-size:22px;margin:0}.sub,.small{color:var(--muted);font-size:13px}.notice{border:1px solid #765c26;background:#322914;border-radius:14px;padding:13px;color:#ffe6ad;font-size:13px;margin-bottom:15px}
+.panel{background:linear-gradient(160deg,#172438,#111b2b);border:1px solid var(--line);border-radius:17px;padding:16px;margin:13px 0;box-shadow:0 12px 30px #0002}h2{font-size:17px;margin:0 0 12px}label{display:block;font-size:13px;color:#bdc9d9;margin:11px 0 6px}
+input,select,textarea{width:100%;border:1px solid #344760;background:#0d1726;color:white;border-radius:11px;padding:12px;font:inherit;font-size:15px;outline:none}textarea{min-height:70px;resize:vertical}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{border:0;border-radius:11px;padding:12px 14px;font-weight:800;font-size:14px;background:var(--gold);color:#182033;width:100%;margin-top:11px}.btn.secondary{background:#25364d;color:#eef4ff;border:1px solid #405674}.btn:disabled{opacity:.5}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.result{white-space:pre-wrap;background:#0b1422;border:1px solid #2b3b53;border-radius:11px;padding:12px;font-size:14px;min-height:70px;overflow-wrap:anywhere}
+.sceneCard{padding:12px;margin:9px 0;background:#0d1726;border:1px solid #2b3b53;border-radius:12px}.sceneHead{display:flex;justify-content:space-between;gap:8px;color:var(--gold);font-size:12px;font-weight:800}.sceneCard p{margin:7px 0;font-size:14px}.sceneCard .visual{color:#b8c9df;font-size:13px}
+.preview{background:#080e18;border:1px solid #344760;border-radius:16px;aspect-ratio:9/16;max-height:410px;margin:12px auto;display:flex;flex-direction:column;justify-content:space-between;padding:18px 12px;width:min(230px,68%);text-align:center;overflow:hidden}.scene{flex:1;display:grid;place-items:center;font-size:70px;animation:bob 2.2s ease-in-out infinite}.caption{font-size:12px;line-height:1.35;background:#000b;border-radius:8px;padding:7px 5px;margin-bottom:5px}
+@keyframes bob{50%{transform:translateY(-9px) rotate(-2deg)}}footer{text-align:center;color:#75869d;font-size:12px;margin-top:22px}
+@media(max-width:430px){main{padding:15px 12px 35px}.panel{padding:13px}.grid{gap:8px}}
 </style></head>
 <body><main>
-<header class="brand"><div class="logo">🎬</div><div><div class="eyebrow">MOBILE CARTOON STUDIO</div><h1>Urdu Story Shorts</h1><p class="sub">Apni next cartoon episode ki planning yahan karo</p></div></header>
-<div class="notice"><b>Free-only mode:</b> Is studio se koi paid API, subscription ya credit automatically use nahi hoga. Story, Urdu dialogue, subtitles aur video prompts tayyar ho sakte hain. <b>Real AI MP4 generation abhi available nahi</b> kyun ke account par is ka verified free video quota nahi mila. Paid fallback band hai.</div>
-<section class="panel"><h2>1. Episode setup</h2>
-<label>Story idea</label><input id="idea" placeholder="Misal: jungle mein kho gaya jadui parinda">
-<div class="grid"><div><label>Story mood</label><select id="mood"><option>Funny adventure</option><option>Heartwarming</option><option>Mystery</option><option>Action adventure</option><option>Magical</option></select></div><div><label>Duration</label><select id="duration"><option value="30">30 seconds</option><option value="45" selected>45 seconds</option><option value="60">60 seconds</option></select></div></div>
-<div class="grid"><div><label>Voice language</label><select id="voice"><option>Urdu (Pakistan)</option><option>Urdu + English</option></select></div><div><label>Visual style</label><select id="style"><option>Cinematic 3D cartoon</option><option>Stylized 3D family animation</option><option>Soft 2.5D storybook</option></select></div></div>
-<label>Character types (new cast each episode)</label><input id="cast" placeholder="Misal: baby dragon aur clever rabbit">
-<button class="btn" id="make">Create story draft</button>
+<header class="brand"><div class="logo">🎬</div><div><div class="eyebrow">FREE MOBILE CARTOON STUDIO</div><h1>Urdu Cartoon Episode Maker</h1><p class="sub">Story, scene plan, Urdu voice preview aur subtitles</p></div></header>
+<div class="notice"><b>Free-only protection ON.</b> Koi paid API ya credit use nahi hota. Yeh version complete episode script, shot-by-shot prompts, SRT subtitles aur device voice preview banata hai. <b>AI animated MP4 engine abhi connected nahi</b> — is liye isay fake generated video nahi kaha jayega.</div>
+<section class="panel"><h2>1. Episode banayein</h2>
+<label>Story idea (khali chhor dein to random story)</label><input id="idea" placeholder="Misal: jungle mein kho gaya jadui parinda">
+<div class="grid"><div><label>Mood</label><select id="mood"><option>Funny adventure</option><option>Heartwarming</option><option>Mystery</option><option>Action adventure</option><option>Magical</option></select></div><div><label>Duration</label><select id="duration"><option value="30">30 seconds</option><option value="45" selected>45 seconds</option><option value="60">60 seconds</option></select></div></div>
+<div class="grid"><div><label>Language</label><select id="language"><option value="ur-PK">Urdu (Pakistan)</option><option value="ur">Urdu</option></select></div><div><label>Visual style</label><select id="style"><option>Cinematic 3D family cartoon</option><option>Stylized 3D animation</option><option>Soft 2.5D storybook</option></select></div></div>
+<label>New characters for this episode</label><input id="cast" placeholder="Misal: baby dragon aur clever rabbit">
+<button class="btn" id="make">✨ Create a new episode</button><p class="small">Har click par story ka naya combination aur scene sequence banega.</p>
 </section>
-<section class="panel"><h2>2. Story & dialogue</h2><div id="story" class="result">Your story draft will appear here.</div><button class="btn secondary" id="copyStory">Copy story</button></section>
-<section class="panel"><h2>3. Short-video prompt</h2><div id="prompt" class="result">Create a story first.</div><button class="btn secondary" id="copyPrompt">Copy video prompt</button></section>
-<section class="panel"><h2>4. Video generation status</h2><div class="result">🔒 FREE-ONLY SAFETY ON\n\nPaid generation: BLOCKED\nFree AI video engine: Not connected\nMP4 export: Not available yet\n\nJab verified free AI video quota/engine available hoga tabhi is button ko enable kiya jayega. Aapke credits aur payment method ko touch nahi kiya jayega.</div><p class="small">Yeh status jaan-boojh kar clear rakha gaya hai — prompt ya emoji preview ko generated video nahi kaha jayega.</p></section>\n<section class="panel"><h2>5. Mobile preview (layout sample)</h2><div class="preview"><div class="small">EPISODE PREVIEW • 9:16</div><div class="scene" id="emoji">🐉 🐰</div><div class="caption" id="caption">Yahan Urdu subtitle do chhoti lines mein nazar aayega.</div></div><p class="small">Yeh sirf subtitle/layout preview hai, final animated video nahi.</p><button class="btn secondary" id="download">Download story .txt</button></section>
-<footer>Free-only safeguards • No paid API • No automatic credit use</footer>
+<section class="panel"><h2>2. Complete Urdu story & dialogue</h2><div id="story" class="result">Episode banayein — script yahan aayegi.</div><div class="actions"><button class="btn secondary" id="copyStory">Copy script</button><button class="btn secondary" id="downloadScript">Download script .txt</button></div></section>
+<section class="panel"><h2>3. Scene-by-scene animation prompts</h2><div id="shots" class="result">Har scene ka camera, action aur character movement yahan aayega.</div><button class="btn secondary" id="copyPrompts">Copy all scene prompts</button></section>
+<section class="panel"><h2>4. Urdu voice preview</h2><p class="small">Aapke mobile/browser mein Urdu voice installed hui to yahan sun sakte hain. Yeh local device voice hai, professional character voice ya lip-sync nahi.</p><div class="grid"><button class="btn" id="playVoice">▶ Play Urdu dialogue</button><button class="btn secondary" id="stopVoice">■ Stop voice</button></div><div id="voiceStatus" class="small">Voice abhi play nahi hui.</div></section>
+<section class="panel"><h2>5. Subtitles (.SRT)</h2><p class="small">Small white subtitles ke liye SRT file. Video editor mein import kar sakte hain.</p><div id="subs" class="result">Episode banane ke baad subtitles yahan aayenge.</div><div class="actions"><button class="btn secondary" id="copySubs">Copy subtitles</button><button class="btn secondary" id="downloadSubs">Download .srt</button></div></section>
+<section class="panel"><h2>6. 9:16 subtitle preview</h2><div class="preview"><div class="small">VERTICAL SHORT • 9:16</div><div class="scene" id="emoji">🐉 🐰</div><div class="caption" id="caption">Subtitle yahan 2 chhoti lines mein hoga.</div></div><p class="small">Yeh layout sample hai, final animated MP4 nahi.</p></section>
+<section class="panel"><h2>7. MP4 generation status</h2><div class="result">🔒 FREE-ONLY MODE
+Paid generation: BLOCKED
+Verified free AI video engine: Not connected
+Animated MP4 export: Not available
+
+Kisi paid service ko background mein call nahi kiya jata. Real AI animation ke liye verified free video engine/quota milna zaroori hai.</div></section>
+<footer>Free-only safeguards • No paid API • No automatic credits • Mobile friendly</footer>
 </main>
 <script>
-const $=id=>document.getElementById(id);let latest='';
-const plots=[
-{title:'The Lost Firefly',urdu:'گمشدہ جگنو',lines:['رات کے جنگل میں ایک ننھا جگنو راستہ بھول گیا۔','فکر مت کرو، ہم تمہیں گھر پہنچائیں گے۔','لیکن دریا کا پل تو ٹوٹا ہوا ہے!','دونوں نے لکڑیوں سے چھوٹا سا راستہ بنایا۔','جگنو نے اپنی روشنی سے پورا جنگل جگمگا دیا۔','اور سب دوست خوشی سے گھر لوٹ آئے۔'],action:'The friends discover a lost firefly, build a safe crossing and guide it home.'},
-{title:'The Runaway Mango',urdu:'بھاگتا ہوا آم',lines:['درخت سے ایک سنہری آم نیچے گرا۔','یہ آم تو خود ہی بھاگ رہا ہے!','جلدی پکڑو، ورنہ پہاڑی سے نیچے چلا جائے گا!','دونوں دوست ہنستے ہوئے اس کے پیچھے دوڑے۔','آم ایک ننھے بندر کے پاس جا رکا۔','انہوں نے آم تین حصوں میں بانٹ لیا۔'],action:'A magical mango rolls downhill and two friends chase it before sharing it with a little monkey.'},
-{title:'The Cloud Boat',urdu:'بادلوں کی کشتی',lines:['آسمان سے ایک نرم بادل نیچے اتر آیا۔','کیا ہم اس پر بیٹھ کر سفر کر سکتے ہیں؟','ہاں، مگر مضبوطی سے پکڑ کر بیٹھنا!','بادل انہیں رنگین پہاڑوں کے اوپر لے گیا۔','اچانک تیز ہوا نے کشتی کو گھما دیا۔','دوستی نے انہیں بحفاظت گھر پہنچا دیا۔'],action:'Two friends ride a cloud boat over rainbow mountains and work together through a sudden gust.'}
+const $=id=>document.getElementById(id);let episode=null;
+const emojiSets=[['🐉','🐰'],['🦊','🐻'],['🐱','🐦'],['🐸','🦋'],['🐼','🦄'],['🐵','🐢'],['🦁','🐧'],['🐿️','🦉']];
+const tales=[
+{title:'The Moonlight Bridge',setup:'raat ke jungle mein aik purana pul toot gaya',problem:'chhota jugnu doosri taraf phans gaya',turn:'tez hawa se lakriyan bikharne lagin',solve:'dono doston ne mil kar belon aur lakriyon se mehfooz raasta banaya',end:'jugnu ne shukriya ada kiya aur apni roshni se jungle chamka diya'},
+{title:'The Runaway Mango',setup:'aik jadui aam darakht se gir kar uchhalne laga',problem:'aam pahari ki dhalan par tezi se lurrhakne laga',turn:'raaste mein aik nanha bandar udaas baitha tha',solve:'doston ne mil kar aam ko roka aur teen hisson mein kaat diya',end:'sab ne aam share kiya aur hans kar ghar chale gaye'},
+{title:'The Cloud Bus',setup:'aasman se aik naram sa badal zameen par aa gaya',problem:'badal par safar karte hue dost raasta bhool gaye',turn:'achanak tez hawa ne badal ko ghumana shuru kar diya',solve:'unhon ne aik doosre ka haath pakra aur hawa ka rukh samjha',end:'badal unhein rang birangi wadi ke upar se ghar le aaya'},
+{title:'The Missing Star',setup:'aik chamakta sitara jungle mein aa gira',problem:'sitara dobara aasman tak nahi pohanch pa raha tha',turn:'pahari ki choti tak ka raasta andhera tha',solve:'doston ne jugnuon ko jama kiya aur roshni ka raasta banaya',end:'sitara aasman mein laut gaya aur sab ko chamakdar tohfa diya'},
+{title:'The Tiny Giant',setup:'aik nanha hathi apni awaaz se pareshan tha',problem:'woh zor se bolta to jungle ke parinday dar jate',turn:'aik din uski awaaz se purana darakht hilne laga',solve:'doston ne use ahista bolna aur soch samajh kar soond istemal karna sikhaya',end:'nanha hathi jungle ka sab se madadgar dost ban gaya'}
 ];
-const casts=[['🐉','🐰'],['🦊','🐻'],['🐱','🐦'],['🐸','🦋'],['🐼','🦄'],['🐵','🐢']];
-function make(){const p=plots[Math.floor(Math.random()*plots.length)],idea=$('idea').value.trim()||p.title,cast=$('cast').value.trim()||'a tiny fox and a brave rabbit',du=$('duration').value,cs=casts[Math.floor(Math.random()*casts.length)];
-let story='EPISODE: '+idea+'\nMood: '+$('mood').value+' | Duration: '+du+' sec\nCharacters: '+cast+'\n\nSCENE-BY-SCENE URDU DIALOGUE\n'+p.lines.map((x,i)=>'Scene '+(i+1)+': '+x).join('\n')+'\n\nENDING\nA warm, funny ending about friendship and helping each other.';
-let prompt='Create a '+du+'-second vertical 9:16 '+$('style').value+' animated family cartoon. Original new character designs for: '+cast+'. Story idea: '+idea+'. '+p.action+'\nUse expressive character acting, clear body movement, changing camera shots, consistent character appearance, cinematic lighting and detailed environments. Urdu (Pakistan) dialogue, distinct character voices, accurate lip-sync. Add only small white Urdu subtitles at the bottom, maximum two lines, with subtle dark outline. Gentle original background music and sound effects. No static slideshow, no giant captions, no logos, no watermark.';
-latest=story+'\n\nVIDEO PROMPT\n'+prompt;$('story').textContent=story;$('prompt').textContent=prompt;$('emoji').textContent=cs.join('  ');$('caption').textContent=p.lines[0];}
-$('make').onclick=make;
-async function copy(id){try{await navigator.clipboard.writeText($(id).textContent);alert('Copied!')}catch(e){alert('Copy supported nahi hua. Text select karke copy kar lo.')}}
-$('copyStory').onclick=()=>copy('story');$('copyPrompt').onclick=()=>copy('prompt');
-$('download').onclick=()=>{if(!latest){make()}const a=document.createElement('a'),u=URL.createObjectURL(new Blob([latest],{type:'text/plain;charset=utf-8'}));a.href=u;a.download='cartoon-episode.txt';a.click();URL.revokeObjectURL(u)};
-if('serviceWorker'in navigator)navigator.serviceWorker.register('./sw.js').catch(()=>{});
+const actions=['wide establishing shot, characters enter frame with clear walking cycles','medium shot, expressive faces, character points toward the problem','dynamic tracking shot, visible running and jumping with moving environment','close-up reaction, clear gestures and emotional expressions','wide action shot, characters cooperate with full-body movement','warm closing shot, smiles, natural blinking and gentle camera pullback'];
+const linesFor=(t,cast)=>[
+'ایک دن '+t.setup+'۔',
+'پہلا دوست: ارے! '+t.problem+'!',
+'دوسرا دوست: گھبراؤ نہیں، ہم مل کر کوئی حل نکالتے ہیں۔',
+'راستے میں مسئلہ اور بڑھ گیا، کیونکہ '+t.turn+'۔',
+'پہلا دوست: میرے پاس ایک ترکیب ہے! آؤ، مل کر کوشش کرتے ہیں۔',
+'دونوں دوستوں نے ہمت نہیں ہاری۔ '+t.solve+'۔',
+'دوسرا دوست: دیکھا! دوستی اور سمجھ داری سے مشکل آسان ہو جاتی ہے۔',
+'اور پھر '+t.end+'۔'
+];
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function timeSrt(sec){let ms=Math.round(sec*1000),h=Math.floor(ms/3600000);ms%=3600000;let m=Math.floor(ms/60000);ms%=60000;let s=Math.floor(ms/1000);ms%=1000;return [h,m,s].map(x=>String(x).padStart(2,'0')).join(':')+','+String(ms).padStart(3,'0')}
+function make(){speechSynthesis?.cancel();const t=tales[Math.floor(Math.random()*tales.length)],cast=$('cast').value.trim()||'a curious little fox and a brave rabbit',idea=$('idea').value.trim()||t.title,dur=+$('duration').value,style=$('style').value,mood=$('mood').value,em=emojiSets[Math.floor(Math.random()*emojiSets.length)],lines=linesFor(t,cast);
+const total=lines.length,step=dur/total,subs=lines.map((line,i)=>(i+1)+'\n'+timeSrt(i*step)+' --> '+timeSrt((i+1)*step)+'\n'+line).join('\n\n');
+const script='EPISODE: '+idea+'\nMOOD: '+mood+' | LENGTH: '+dur+' seconds\nCHARACTERS: '+cast+'\nVISUAL STYLE: '+style+'\n\nURDU DIALOGUE\n'+lines.map((x,i)=>'Scene '+(i+1)+': '+x).join('\n')+'\n\nENDING: '+t.end+'.';
+const shots=lines.map((line,i)=>'SCENE '+(i+1)+' • '+Math.max(3,Math.round(step))+' sec\nDialogue/subtitle: '+line+'\nAnimation direction: '+actions[i%actions.length]+'. '+cast+'. '+style+'. Keep character design, clothing, colors and proportions consistent. Vertical 9:16, cinematic lighting, detailed background.\n').join('\n');
+const master='Create a '+dur+'-second vertical 9:16 '+style+' short for a family audience. Original characters: '+cast+'. Story: '+idea+'. Mood: '+mood+'. Use fully animated 3D characters, expressive faces, visible body movement, natural walk/run cycles, gestures, interaction with props, changing camera angles and continuous scene transitions. Urdu (Pakistan) dialogue with separate character performances and accurate lip sync. Small white subtitles at bottom, maximum 2 lines, subtle dark outline. Original gentle music and suitable sound effects. No slideshow, no still images, no giant text, no logos, no watermark.\n\n'+shots;
+episode={script,shots,subs,lines,master,cast,emoji:em,duration:dur};
+$('story').textContent=script;$('shots').textContent=master;$('subs').textContent=subs;$('emoji').textContent=em.join('  ');$('caption').textContent=lines[0];$('voiceStatus').textContent='Episode ready. Play dabayein.';
+}
+function download(name,data,type){const a=document.createElement('a'),u=URL.createObjectURL(new Blob([data],{type}));a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+async function copy(id){try{await navigator.clipboard.writeText($(id).textContent);alert('Copied!')}catch(e){alert('Copy nahi ho saka. Text select karke copy karein.')}}
+$('make').onclick=make;$('copyStory').onclick=()=>copy('story');$('copyPrompts').onclick=()=>copy('shots');$('copySubs').onclick=()=>copy('subs');
+$('downloadScript').onclick=()=>{if(!episode)make();download('urdu-cartoon-script.txt',episode.script,'text/plain;charset=utf-8')};
+$('downloadSubs').onclick=()=>{if(!episode)make();download('urdu-cartoon-subtitles.srt',episode.subs,'text/plain;charset=utf-8')};
+$('playVoice').onclick=()=>{if(!episode)make();if(!('speechSynthesis'in window)){ $('voiceStatus').textContent='Is browser mein voice preview support nahi.';return;}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(episode.lines.join(' '));u.lang=$('language').value;u.rate=.9;const voices=speechSynthesis.getVoices();const v=voices.find(x=>x.lang.toLowerCase().startsWith('ur'));if(v)u.voice=v;else $('voiceStatus').textContent='Urdu voice installed nahi mili; browser ki default voice use ho sakti hai.';u.onend=()=>{$('voiceStatus').textContent='Voice preview complete.'};u.onerror=()=>{$('voiceStatus').textContent='Voice playback unavailable. Mobile mein Urdu TTS voice support check karein.'};speechSynthesis.speak(u);};
+$('stopVoice').onclick=()=>{if('speechSynthesis'in window)speechSynthesis.cancel();$('voiceStatus').textContent='Voice stopped.'};
 </script></body></html>
