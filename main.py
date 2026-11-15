@@ -67,54 +67,99 @@ def background(scene, seed):
  return im
 
 def character_layer(kind, x, y, scale, facing=1, mood=0):
+ # Richer illustrated 2D animal design: warm species palettes, layered shapes,
+ # expressive faces, highlights, cheeks, patterned bodies and soft rim light.
  layer=Image.new("RGBA",(W,H),(0,0,0,0)); d=ImageDraw.Draw(layer)
  s=scale; cx=x; cy=y
- # body and head shapes
- body=(cx-42*s,cy-4*s,cx+42*s,cy+100*s)
- head=(cx-52*s,cy-92*s,cx+52*s,cy+10*s)
- fill=(205,207,207,255); dark=(95,98,99,255); gold=(255,210,65,255)
- d.ellipse(body,fill=fill,outline=gold,width=max(2,int(5*s)))
- d.ellipse(head,fill=fill,outline=gold,width=max(2,int(5*s)))
- # species silhouette
- if kind in ("rabbit","deer","cat","fox","squirrel","dragon"):
-  ears=2 if kind not in ("fox","squirrel") else 2
-  for side in (-1,1):
-   ex=cx+side*27*s
-   if kind=="rabbit": d.ellipse((ex-13*s,cy-155*s,ex+13*s,cy-68*s),fill=fill,outline=gold,width=max(2,int(5*s)))
-   elif kind=="deer": d.line((ex,cy-75*s,ex+side*18*s,cy-155*s,ex+side*33*s,cy-145*s),fill=gold,width=max(3,int(6*s)))
-   elif kind=="dragon": d.polygon([(ex-12*s,cy-80*s),(ex,cy-135*s),(ex+15*s,cy-80*s)],fill=fill,outline=gold)
-   else: d.polygon([(ex-15*s,cy-70*s),(ex,cy-140*s),(ex+18*s,cy-70*s)],fill=fill,outline=gold)
- if kind=="bird":
-  d.polygon([(cx+40*s,cy-55*s),(cx+85*s,cy-40*s),(cx+40*s,cy-27*s)],fill=gold)
- if kind=="robot":
-  d.rectangle((cx-43*s,cy-90*s,cx+43*s,cy+8*s),fill=fill,outline=gold,width=max(2,int(5*s)))
-  d.line((cx,cy-92*s,cx,cy-125*s),fill=gold,width=max(3,int(5*s)))
- if kind=="penguin":
-  d.ellipse((cx-25*s,cy+8*s,cx+25*s,cy+83*s),fill=(65,68,70,255),outline=gold,width=3)
- if kind=="frog":
-  d.ellipse((cx-46*s,cy-115*s,cx-8*s,cy-75*s),fill=fill,outline=gold,width=3)
-  d.ellipse((cx+8*s,cy-115*s,cx+46*s,cy-75*s),fill=fill,outline=gold,width=3)
- # tail/wings
+ palettes={
+  "fox":((224,119,48),(255,190,105),(91,49,31)),
+  "rabbit":((232,203,166),(255,237,211),(115,83,66)),
+  "bird":((75,166,205),(180,230,244),(35,84,115)),
+  "robot":((125,158,174),(211,229,235),(43,72,88)),
+  "bear":((145,94,63),(220,177,133),(68,43,34)),
+  "cat":((153,151,174),(226,220,238),(65,57,85)),
+  "raccoon":((111,121,132),(204,211,216),(48,54,63)),
+  "deer":((190,137,82),(244,211,160),(91,61,39)),
+  "penguin":((52,79,103),(239,241,232),(24,36,49)),
+  "dragon":((92,174,126),(189,232,161),(39,91,67)),
+  "squirrel":((181,111,57),(245,195,126),(91,54,31)),
+  "frog":((104,177,94),(198,230,133),(45,91,45))
+ }
+ base,light,dark=palettes.get(kind,palettes["bear"])
+ gold=(255,211,112,255)
+ def box(coords): return tuple(int(v*s) for v in coords)
+ # soft shadow
+ d.ellipse(box((cx-64,cy+119,cx+64,cy+145)),fill=(0,0,0,65))
+ # tail first, behind body
  if kind in ("fox","cat","raccoon","squirrel","dragon"):
-  d.arc((cx+22*s,cy+30*s,cx+115*s,cy+125*s),180,330,fill=gold,width=max(4,int(8*s)))
- if kind in ("bird","penguin"):
-  d.polygon([(cx-32*s,cy+10*s),(cx-85*s,cy+55*s),(cx-25*s,cy+55*s)],fill=fill,outline=gold)
- # face
- eye_y=cy-54*s
+  d.ellipse(box((cx+23,cy+35,cx+112,cy+111)),fill=dark+(255,),outline=light+(255,),width=max(2,int(4*s)))
+  d.ellipse(box((cx+60,cy+43,cx+110,cy+91)),fill=light+(255,))
+ # ears / antlers
+ if kind in ("rabbit","deer","cat","fox","squirrel","dragon"):
+  for side in (-1,1):
+   ex=cx+side*29*s
+   if kind=="rabbit":
+    d.ellipse(box((ex-14,cy-164,ex+14,cy-63)),fill=base+(255,),outline=dark+(255,),width=max(2,int(4*s)))
+    d.ellipse(box((ex-7,cy-151,ex+7,cy-75)),fill=(239,145,153,255))
+   elif kind=="deer":
+    d.polygon([(int(ex),int((cy-74)*s)),(int((ex+side*20*s)),int((cy-147)*s)),(int((ex+side*37*s)),int((cy-139)*s)),(int((ex+side*15*s)),int((cy-105)*s))],fill=base+(255,),outline=dark+(255,))
+   elif kind=="dragon":
+    d.polygon([(int(ex-12*s),int((cy-70)*s)),(int(ex),int((cy-133)*s)),(int(ex+16*s),int((cy-69)*s))],fill=base+(255,),outline=dark+(255,))
+   else:
+    d.polygon([(int(ex-16*s),int((cy-70)*s)),(int(ex),int((cy-137)*s)),(int(ex+19*s),int((cy-69)*s))],fill=base+(255,),outline=dark+(255,))
+ # body with belly patch
+ d.ellipse(box((cx-46,cy-4,cx+46,cy+113)),fill=base+(255,),outline=dark+(255,),width=max(2,int(5*s)))
+ d.ellipse(box((cx-25,cy+34,cx+25,cy+99)),fill=light+(255,))
+ # head silhouette
+ d.ellipse(box((cx-58,cy-101,cx+58,cy+16)),fill=base+(255,),outline=dark+(255,),width=max(2,int(5*s)))
+ # cheeks / muzzle
+ d.ellipse(box((cx-35,cy-48,cx+35,cy+2)),fill=light+(255,))
+ if kind=="bird":
+  d.polygon([(int((cx+35*s)),int((cy-48)*s)),(int((cx+82*s)),int((cy-35)*s)),(int((cx+35*s)),int((cy-19)*s))],fill=(244,170,65,255))
+ if kind=="robot":
+  d.rounded_rectangle(box((cx-43,cy-91,cx+43,cy+4)),radius=int(16*s),fill=base+(255,),outline=dark+(255,),width=max(2,int(4*s)))
+  d.line((int(cx*s),int((cy-99)*s),int(cx*s),int((cy-125)*s)),fill=gold,width=max(2,int(5*s)))
+  d.ellipse(box((cx-8,cy-137,cx+8,cy-121)),fill=(255,210,75,255))
+ if kind=="penguin":
+  d.ellipse(box((cx-27,cy+12,cx+27,cy+92)),fill=light+(255,))
+ if kind=="frog":
+  for side in (-1,1):
+   ex=cx+side*31*s
+   d.ellipse(box((ex-17,cy-116,ex+17,cy-78)),fill=light+(255,),outline=dark+(255,),width=max(2,int(3*s)))
+ # eyes with highlights and expressive brows
+ eye_y=cy-56*s
  for side in (-1,1):
-  ex=cx+side*19*s
-  d.ellipse((ex-6*s,eye_y-7*s,ex+6*s,eye_y+8*s),fill=(20,22,23,255))
- d.arc((cx-18*s,cy-40*s,cx+18*s,cy-18*s),10,170,fill=(30,30,30,255),width=max(2,int(3*s)))
- # arms and legs; pose varies with mood
- swing=math.sin(mood*math.pi*2)*24*s
- d.line((cx-25*s,cy+28*s,cx-65*s,cy+65*s+swing),fill=gold,width=max(4,int(9*s)))
- d.line((cx+25*s,cy+28*s,cx+65*s,cy+65*s-swing),fill=gold,width=max(4,int(9*s)))
- d.line((cx-18*s,cy+88*s,cx-35*s,cy+135*s),fill=gold,width=max(4,int(10*s)))
- d.line((cx+18*s,cy+88*s,cx+35*s,cy+135*s),fill=gold,width=max(4,int(10*s)))
- # glow outline
+  ex=cx+side*21*s
+  d.ellipse(box((ex-9,eye_y-11*s,ex+9,eye_y+12*s)),fill=(250,248,231,255))
+  d.ellipse(box((ex-4,eye_y-6*s,ex+5,eye_y+8*s)),fill=(29,34,39,255))
+  d.ellipse(box((ex-2,eye_y-5*s,ex+1,eye_y-2*s)),fill=(255,255,255,255))
+  d.arc(box((ex-12,eye_y-20*s,ex+12,eye_y-8*s)),190,345,fill=dark+(255,),width=max(2,int(3*s)))
+ # smile and blush
+ d.arc(box((cx-17,cy-34,cx+17,cy-13)),5,175,fill=dark+(255,),width=max(2,int(3*s)))
+ for side in (-1,1):
+  ex=cx+side*39*s
+  d.ellipse(box((ex-7,cy-26,ex+7,cy-17)),fill=(241,133,135,125))
+ # arms and feet; slight continuous movement
+ swing=math.sin(mood*math.tau)*18*s
+ d.line((int((cx-35*s)),int((cy+34*s)),int((cx-65*s)),int((cy+67*s+swing))),fill=base+(255,),width=max(5,int(13*s)))
+ d.ellipse(box((cx-75,cy+58+swing,cx-55,cy+78+swing)),fill=light+(255,))
+ d.line((int((cx+35*s)),int((cy+34*s)),int((cx+65*s)),int((cy+67*s-swing))),fill=base+(255,),width=max(5,int(13*s)))
+ d.ellipse(box((cx+55,cy+58-swing,cx+75,cy+78-swing)),fill=light+(255,))
+ for side in (-1,1):
+  fx=cx+side*25*s
+  d.line((int(fx),int((cy+91*s)),int((fx+side*10*s)),int((cy+132*s))),fill=dark+(255,),width=max(5,int(12*s)))
+  d.ellipse(box((fx-15,cy+125,fx+17,cy+142)),fill=dark+(255,))
+ # signature markings by species
+ if kind in ("raccoon","bear"):
+  d.ellipse(box((cx-47,cy-62,cx-4,cy-22)),fill=dark+(190,))
+  d.ellipse(box((cx+4,cy-62,cx+47,cy-22)),fill=dark+(190,))
+ if kind=="deer":
+  for side in (-1,1):
+   d.ellipse(box((cx+side*35-4,cy+5,cx+side*35+4,cy+13)),fill=(255,239,202,255))
+ # soft colored glow
  alpha=layer.getchannel("A")
- glow=alpha.filter(ImageFilter.MaxFilter(19)).filter(ImageFilter.GaussianBlur(13))
- halo=Image.new("RGBA",(W,H),(255,194,35,0)); halo.putalpha(glow.point(lambda a:int(a*.55)))
+ glow=alpha.filter(ImageFilter.MaxFilter(21)).filter(ImageFilter.GaussianBlur(12))
+ halo=Image.new("RGBA",(W,H),base+(0,)); halo.putalpha(glow.point(lambda a:int(a*.22)))
  return Image.alpha_composite(halo,layer)
 
 def draw_frame(scene_no, frame_no, frames, cast, action, seed):
