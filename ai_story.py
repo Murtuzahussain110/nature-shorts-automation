@@ -54,30 +54,20 @@ def image_prompt(story,scene_en):
          f"Scene: {scene_en} "
          "Portrait vertical 9:16 composition, full scene visible, no words, no letters, no captions, no watermark, not 3D, not photorealistic.")
 def generate_image(prompt,seed,path):
- # Tested public Hugging Face FLUX.1-dev Space. It generated a real storybook illustration
- # in GitHub Actions without an API key. Public free capacity/queue can vary.
+ # Tested public Hugging Face Hyper-FLUX Space. The repository's free-provider
+ # workflow successfully generated a real 1.3 MB illustration from this endpoint.
  last=None
  for attempt in range(3):
   try:
-   client=Client("black-forest-labs/FLUX.1-dev",verbose=False,download_files=True)
+   client=Client("ByteDance/Hyper-FLUX-8Steps-LoRA",verbose=False,download_files=True)
    result=client.predict(
-    prompt=prompt,
-    seed=float(seed),
-    randomize_seed=False,
-    width=576,
-    height=1024,
-    guidance_scale=3.5,
-    num_inference_steps=28,
-    api_name="/infer"
+    1024, 576, 8, 3.5, prompt, float(seed),
+    api_name="/process_image"
    )
    image_result=result[0] if isinstance(result,(list,tuple)) else result
-   source=None
-   if isinstance(image_result,dict):
-    source=image_result.get("path") or image_result.get("url")
-   elif isinstance(image_result,str):
-    source=image_result
+   source=image_result.get("path") if isinstance(image_result,dict) else image_result
    if not source:
-    raise RuntimeError("FLUX Space returned no image path or URL")
+    raise RuntimeError("Hyper-FLUX Space returned no image path")
    if str(source).startswith("http"):
     response=requests.get(source,timeout=120)
     response.raise_for_status()
@@ -88,16 +78,16 @@ def generate_image(prompt,seed,path):
    with Image.open(path) as im:
     im.verify()
    if path.stat().st_size<10000:
-    raise RuntimeError("FLUX Space returned an incomplete image")
+    raise RuntimeError("Hyper-FLUX Space returned an incomplete image")
    print(f"AI IMAGE READY: scene seed {seed}, {path.stat().st_size} bytes",flush=True)
    return
   except Exception as e:
    last=e
-   print(f"FLUX attempt {attempt+1}/3 failed: {e}",flush=True)
+   print(f"Hyper-FLUX attempt {attempt+1}/3 failed: {e}",flush=True)
    if attempt<2:
     import time
     time.sleep(15*(attempt+1))
- raise RuntimeError("FREE HUGGING FACE FLUX IMAGE GENERATION FAILED after 3 attempts. No procedural or stock-image fallback was used. "+str(last))
+ raise RuntimeError("FREE HUGGING FACE Hyper-FLUX IMAGE GENERATION FAILED after 3 attempts. No procedural or stock-image fallback was used. "+str(last))
 
 def upload(video,title,description):
  client=json.loads(os.environ["YOUTUBE_CLIENT_JSON"]); info=client.get("installed") or client.get("web")
