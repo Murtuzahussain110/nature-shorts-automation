@@ -11,6 +11,7 @@ on:
     branches: [main, mobile-cartoon-studio]
     paths:
       - 'main.py'
+      - 'ai_story.py'
       - 'blender/**'
       - 'requirements.txt'
       - '.github/workflows/daily.yml'
@@ -43,13 +44,13 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-noto-core
       - name: Install Python packages
         run: pip install -r requirements.txt
-      - name: Create a new-character animated story for visual review
+      - name: Generate six AI-illustrated Urdu story scenes for visual review
         env:
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY_STATUS: private
           YOUTUBE_UPLOAD_ENABLED: false
-        run: python main.py
+        run: python ai_story.py
       - name: Verify MP4 video, audio, subtitles and portrait format
         if: success()
         run: |
