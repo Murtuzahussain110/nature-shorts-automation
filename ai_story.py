@@ -1,0 +1,110 @@
+import os, json, math, random, subprocess, asyncio, textwrap
+from datetime import datetime, timezone
+from pathlib import Path
+from urllib.parse import quote
+import requests
+import edge_tts
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+
+ROOT=Path(__file__).resolve().parent
+OUT=ROOT/"output"; IMAGES=OUT/"scenes"; AUDIO=OUT/"audio"
+for p in (OUT,IMAGES,AUDIO): p.mkdir(parents=True,exist_ok=True)
+W,H,FPS=540,960,12
+VOICE_A="ur-PK-UzmaNeural"; VOICE_B="ur-PK-AsadNeural"
+STORIES=[
+ {"title":"The Lost Star","urdu":"گمشدہ ستارہ","cast":[("Milo","fox","warm orange fox with cream muzzle, teal scarf"),("Pip","rabbit","small lavender rabbit with long ears, yellow waistcoat")],
+  "scenes":[("رات کے جنگل میں مِلو کو گھاس پر ایک ننھا چمکتا ستارہ ملا۔","Milo discovers a tiny glowing fallen star in a moonlit forest clearing."),
+  ("پِپ نے کہا، ہمیں اسے واپس آسمان تک پہنچانا ہوگا۔","Pip joins Milo; both carefully cradle the glowing star and look toward a distant hill."),
+  ("وہ پتھریلے راستے پر چلتے ہوئے پہاڑی کی طرف روانہ ہوئے۔","The two friends climb a winding rocky forest path at night, star glowing between them."),
+  ("اچانک تیز ہوا چلی اور ستارہ ان کے ہاتھوں سے نکلنے لگا۔","A strong gust of wind almost blows the glowing star away; the friends reach out urgently."),
+  ("مِلو نے پِپ کا ہاتھ پکڑا اور دونوں نے مل کر ستارہ سنبھال لیا۔","Milo and Pip protect the star together against the wind on the hilltop."),
+  ("ستارہ آسمان میں واپس چمکا، اور دونوں دوست خوشی سے مسکرائے۔","The star rises back into a beautiful deep-blue starry sky as the two friends smile on the hilltop.") ]},
+ {"title":"The Magic Garden","urdu":"جادوئی باغ","cast":[("Nori","bear","small honey-brown bear cub with red backpack"),("Zuzu","bird","bright turquoise little bird with golden beak and tiny blue cap")],
+  "scenes":[("نوری کو درختوں کے پیچھے ایک خفیہ دروازہ نظر آیا۔","Nori the bear cub discovers a tiny ornate glowing door hidden in an ancient tree."),
+  ("زوزو نے اپنے پروں سے دروازہ کھولا تو روشنی پھیل گئی۔","Zuzu the turquoise bird opens the tiny door and warm magical light spills out."),
+  ("دروازے کے پیچھے رنگ برنگے پھولوں کا باغ تھا۔","The friends enter a breathtaking secret garden filled with luminous colorful flowers."),
+  ("ایک ننھی تتلی راستہ بھول کر پھولوں میں پھنس گئی تھی۔","A tiny butterfly is tangled gently among oversized flower stems, looking worried."),
+  ("دونوں نے احتیاط سے تتلی کو آزاد کر دیا۔","Nori and Zuzu carefully free the butterfly together in the magical garden."),
+  ("تتلی اڑی تو پورا باغ جگمگا اٹھا۔","The butterfly flies free and the entire enchanted garden glows with sparkling lights.") ]}
+]
+
+def run(cmd):
+ p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
+ if p.returncode: raise RuntimeError((p.stderr or p.stdout)[-4000:])
+def stamp(s):
+ ms=int(s*1000); h,ms=divmod(ms,3600000); m,ms=divmod(ms,60000); sec,ms=divmod(ms,1000)
+ return f"{h:02}:{m:02}:{sec:02},{ms:03}"
+def wrap(s,n=28):
+ words=s.split(); lines=[]; line=""
+ for w in words:
+  if len((line+" "+w).strip())>n and line: lines.append(line); line=w
+  else: line=(line+" "+w).strip()
+ if line: lines.append(line)
+ return "\\N".join(lines[:2])
+async def voice(text,path,v):
+ await edge_tts.Communicate(text=text,voice=v,rate="-3%").save(str(path))
+ if not path.exists() or path.stat().st_size<500: raise RuntimeError("Urdu voice generation failed")
+def image_prompt(story,scene_en):
+ cast="; ".join(f"{n}: {desc}" for n,kind,desc in story["cast"])
+ return ("Premium hand-painted 2D illustrated children's storybook frame, rich detailed environment, expressive consistent cartoon characters, beautiful cinematic composition, soft painterly textures, warm appealing colors, professional animation concept art. "
+         f"Recurring character designs must stay exactly consistent: {cast}. "
+         f"Scene: {scene_en} "
+         "Portrait vertical 9:16 composition, full scene visible, no words, no letters, no captions, no watermark, not 3D, not photorealistic.")
+def generate_image(prompt,seed,path):
+ # Public no-key image endpoint. No procedural fallback: fail loudly if the provider is unavailable.
+ url="https://image.pollinations.ai/prompt/"+quote(prompt,safe="")
+ params={"width":W,"height":H,"seed":seed,"model":"flux","nologo":"true"}
+ last=None
+ for attempt in range(3):
+  try:
+   r=requests.get(url,params=params,timeout=(20,180),headers={"User-Agent":"UrduStoryStudio/1.0"})
+   r.raise_for_status()
+   if not r.headers.get("content-type","").startswith("image/"): raise RuntimeError("Image service returned non-image data")
+   if len(r.content)<20000: raise RuntimeError("Image service returned an incomplete image")
+   path.write_bytes(r.content)
+   from PIL import Image
+   im=Image.open(path); im.verify()
+   return
+  except Exception as e:
+   last=e
+   if attempt<2: import time; time.sleep(5*(attempt+1))
+ raise RuntimeError("FREE AI IMAGE PROVIDER FAILED; no fake drawings were substituted. "+str(last))
+def upload(video,title,description):
+ client=json.loads(os.environ["YOUTUBE_CLIENT_JSON"]); info=client.get("installed") or client.get("web")
+ creds=Credentials(None,refresh_token=os.environ["YOUTUBE_REFRESH_TOKEN"],token_uri=info.get("token_uri","https://oauth2.googleapis.com/token"),client_id=info["client_id"],client_secret=info["client_secret"],scopes=["https://www.googleapis.com/auth/youtube.upload"])
+ yt=build("youtube","v3",credentials=creds)
+ req=yt.videos().insert(part="snippet,status",body={"snippet":{"title":title[:100],"description":description,"tags":["Urdu cartoon","illustrated story","shorts"],"categoryId":"1"},"status":{"privacyStatus":"private","selfDeclaredMadeForKids":False}},media_body=MediaFileUpload(str(video),mimetype="video/mp4",resumable=True))
+ response=None
+ while response is None: status,response=req.next_chunk()
+ print("PRIVATE VIDEO: https://www.youtube.com/watch?v="+response["id"],flush=True)
+def main():
+ day=datetime.now(timezone.utc).date().toordinal(); story=STORIES[day%len(STORIES)]
+ for folder in (IMAGES,AUDIO):
+  for f in folder.glob("*"):
+   if f.is_file(): f.unlink()
+ clips=[]; audios=[]; subs=[]; offset=0.0
+ for i,(ur,en) in enumerate(story["scenes"],1):
+  img=IMAGES/f"scene_{i}.jpg"; generate_image(image_prompt(story,en),day*17+i,img)
+  wav=AUDIO/f"voice_{i}.mp3"; asyncio.run(voice(ur,wav,VOICE_A if i%2 else VOICE_B)); audios.append(wav)
+  probe=subprocess.run(["ffprobe","-v","error","-show_entries","format=duration","-of","default=noprint_wrappers=1:nokey=1",str(wav)],capture_output=True,text=True,check=True)
+  dur=max(3.5,float(probe.stdout.strip())+.25)
+  clip=OUT/f"clip_{i}.mp4"
+  # Gentle Ken Burns movement on each actual AI illustration.
+  run(["ffmpeg","-y","-loglevel","error","-loop","1","-i",str(img),"-t",str(dur),"-vf",f"scale=800:1422,zoompan=z='min(zoom+0.0007,1.08)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':d={int(dur*FPS)}:s={W}x{H}:fps={FPS},format=yuv420p","-an","-c:v","libx264","-preset","veryfast","-crf","23",str(clip)])
+  clips.append(clip); subs.append(f"{i}\n{stamp(offset)} --> {stamp(offset+dur)}\n{wrap(ur)}\n"); offset+=dur
+ (OUT/"subtitles.srt").write_text("\n".join(subs),encoding="utf-8")
+ (OUT/"clips.txt").write_text("\n".join("file '"+str(x.resolve())+"'" for x in clips),encoding="utf-8")
+ (OUT/"audio.txt").write_text("\n".join("file '"+str(x.resolve())+"'" for x in audios),encoding="utf-8")
+ run(["ffmpeg","-y","-loglevel","error","-f","concat","-safe","0","-i",str(OUT/"clips.txt"),"-c","copy",str(OUT/"silent.mp4")])
+ run(["ffmpeg","-y","-loglevel","error","-f","concat","-safe","0","-i",str(OUT/"audio.txt"),"-c:a","libmp3lame","-q:a","4",str(OUT/"voice.mp3")])
+ sub=str((OUT/"subtitles.srt").resolve()).replace("\\","/").replace(":","\\:")
+ run(["ffmpeg","-y","-loglevel","error","-i",str(OUT/"silent.mp4"),"-i",str(OUT/"voice.mp3"),"-vf",f"subtitles='{sub}':force_style='FontName=Noto Naskh Arabic,FontSize=17,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Alignment=2,MarginV=55'","-map","0:v","-map","1:a","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-shortest","-movflags","+faststart",str(OUT/"daily_story.mp4")])
+ video=OUT/"daily_story.mp4"
+ if not video.exists() or video.stat().st_size<50000: raise RuntimeError("Final MP4 validation failed")
+ print("AI-ILLUSTRATED VIDEO READY:",video,"STORY:",story["title"],flush=True)
+ if os.getenv("YOUTUBE_UPLOAD_ENABLED","").lower()=="true":
+  if not os.getenv("YOUTUBE_CLIENT_JSON") or not os.getenv("YOUTUBE_REFRESH_TOKEN"): raise RuntimeError("YouTube OAuth secrets missing")
+  upload(video,story["title"]+" | Urdu Cartoon Story #Shorts",f"{story['urdu']}\n\n#UrduStory #Cartoon #Shorts")
+if __name__=="__main__": main()
