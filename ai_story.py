@@ -59,7 +59,7 @@ def generate_image(prompt,seed,path):
  last=None
  for attempt in range(3):
   try:
-   client=Client("ByteDance/Hyper-FLUX-8Steps-LoRA",verbose=False,download_files=True)
+   client=Client("ByteDance/Hyper-FLUX-8Steps-LoRA",hf_token=os.getenv("HF_TOKEN") or None,verbose=False,download_files=True)
    result=client.predict(
     1024, 576, 8, 3.5, prompt, float(seed),
     api_name="/process_image"
