@@ -1,8 +1,9 @@
-import os, json, math, random, subprocess, asyncio, textwrap
+import os, json, math, random, subprocess, asyncio, textwrap, shutil
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 import requests
+from gradio_client import Client
 import edge_tts
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -42,7 +43,7 @@ def wrap(s,n=28):
   if len((line+" "+w).strip())>n and line: lines.append(line); line=w
   else: line=(line+" "+w).strip()
  if line: lines.append(line)
- return "\\N".join(lines[:2])
+ return "\n".join(lines[:2])
 async def voice(text,path,v):
  await edge_tts.Communicate(text=text,voice=v,rate="-3%").save(str(path))
  if not path.exists() or path.stat().st_size<500: raise RuntimeError("Urdu voice generation failed")
@@ -53,24 +54,51 @@ def image_prompt(story,scene_en):
          f"Scene: {scene_en} "
          "Portrait vertical 9:16 composition, full scene visible, no words, no letters, no captions, no watermark, not 3D, not photorealistic.")
 def generate_image(prompt,seed,path):
- # Public no-key image endpoint. No procedural fallback: fail loudly if the provider is unavailable.
- url="https://image.pollinations.ai/prompt/"+quote(prompt,safe="")
- params={"width":W,"height":H,"seed":seed,"model":"flux","nologo":"true"}
+ # Tested public Hugging Face FLUX.1-dev Space. It generated a real storybook illustration
+ # in GitHub Actions without an API key. Public free capacity/queue can vary.
  last=None
  for attempt in range(3):
   try:
-   r=requests.get(url,params=params,timeout=(20,180),headers={"User-Agent":"UrduStoryStudio/1.0"})
-   r.raise_for_status()
-   if not r.headers.get("content-type","").startswith("image/"): raise RuntimeError("Image service returned non-image data")
-   if len(r.content)<20000: raise RuntimeError("Image service returned an incomplete image")
-   path.write_bytes(r.content)
+   client=Client("black-forest-labs/FLUX.1-dev",verbose=False,download_files=True)
+   result=client.predict(
+    prompt=prompt,
+    seed=float(seed),
+    randomize_seed=False,
+    width=576,
+    height=1024,
+    guidance_scale=3.5,
+    num_inference_steps=28,
+    api_name="/infer"
+   )
+   image_result=result[0] if isinstance(result,(list,tuple)) else result
+   source=None
+   if isinstance(image_result,dict):
+    source=image_result.get("path") or image_result.get("url")
+   elif isinstance(image_result,str):
+    source=image_result
+   if not source:
+    raise RuntimeError("FLUX Space returned no image path or URL")
+   if str(source).startswith("http"):
+    response=requests.get(source,timeout=120)
+    response.raise_for_status()
+    path.write_bytes(response.content)
+   else:
+    shutil.copyfile(str(source),path)
    from PIL import Image
-   im=Image.open(path); im.verify()
+   with Image.open(path) as im:
+    im.verify()
+   if path.stat().st_size<10000:
+    raise RuntimeError("FLUX Space returned an incomplete image")
+   print(f"AI IMAGE READY: scene seed {seed}, {path.stat().st_size} bytes",flush=True)
    return
   except Exception as e:
    last=e
-   if attempt<2: import time; time.sleep(5*(attempt+1))
- raise RuntimeError("FREE AI IMAGE PROVIDER FAILED; no fake drawings were substituted. "+str(last))
+   print(f"FLUX attempt {attempt+1}/3 failed: {e}",flush=True)
+   if attempt<2:
+    import time
+    time.sleep(15*(attempt+1))
+ raise RuntimeError("FREE HUGGING FACE FLUX IMAGE GENERATION FAILED after 3 attempts. No procedural or stock-image fallback was used. "+str(last))
+
 def upload(video,title,description):
  client=json.loads(os.environ["YOUTUBE_CLIENT_JSON"]); info=client.get("installed") or client.get("web")
  creds=Credentials(None,refresh_token=os.environ["YOUTUBE_REFRESH_TOKEN"],token_uri=info.get("token_uri","https://oauth2.googleapis.com/token"),client_id=info["client_id"],client_secret=info["client_secret"],scopes=["https://www.googleapis.com/auth/youtube.upload"])
