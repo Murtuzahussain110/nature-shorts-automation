@@ -132,8 +132,9 @@ def generate_cloudflare_image(prompt,seed,path):
   raise RuntimeError("Cloudflare credentials are not configured")
  model="@cf/black-forest-labs/flux-2-klein-4b"
  url=f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{model}"
- response=requests.post(url,headers={"Authorization":f"Bearer {token}","Content-Type":"application/json"},
-  json={"prompt":prompt,"width":576,"height":1024,"seed":int(seed)},timeout=240)
+ # FLUX.2 Klein expects multipart/form-data, not JSON.
+ response=requests.post(url,headers={"Authorization":f"Bearer {token}"},
+  files={"prompt":(None,prompt),"width":(None,"576"),"height":(None,"1024"),"seed":(None,str(int(seed)))},timeout=240)
  if not response.ok:
   raise RuntimeError(f"Cloudflare Workers AI HTTP {response.status_code}: {response.text[:1200]}")
  content_type=response.headers.get("content-type","").lower()
