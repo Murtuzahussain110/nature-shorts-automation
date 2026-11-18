@@ -46,3 +46,8 @@ Set an environment variable named `STORY_INDEX` to `0`, `1`, or `2` when running
 - Internet access for Edge TTS and YouTube upload
 
 This first version uses procedural illustrations and camera movement. It is not full 3D character animation, and the starter episode library is finite. Review every private upload for visual quality, Urdu pronunciation, subtitle timing, and child-safety before publishing. Automated uploads do not guarantee views, revenue, or monetization eligibility.
+
+
+## Gemini daily Urdu story generation
+
+The cartoon pipeline can use Google Gemini for a fresh Urdu story and six scene-specific illustration prompts. Add a GitHub Actions repository secret named `GEMINI_API_KEY` containing a Google AI Studio API key. The workflow reads it from the environment; never paste the key into source code or chat. If the secret is absent or Gemini is unavailable, the pipeline safely falls back to the built-in stories. Gemini generates the story and scene prompts only; the separate image provider still needs to successfully render all six illustrations. No paid image API is configured by this change.
