@@ -212,6 +212,27 @@ def main():
  run(["ffmpeg","-y","-loglevel","error","-i",str(OUT/"silent.mp4"),"-i",str(OUT/"voice.mp3"),"-vf",f"subtitles='{sub}':force_style='FontName=Noto Naskh Arabic,FontSize=17,PrimaryColour=&H00FFFFFF,OutlineColour=&H00000000,BorderStyle=1,Outline=2,Shadow=1,Alignment=2,MarginV=55'","-map","0:v","-map","1:a","-c:v","libx264","-preset","veryfast","-crf","23","-c:a","aac","-shortest","-movflags","+faststart",str(OUT/"daily_story.mp4")])
  video=OUT/"daily_story.mp4"
  if not video.exists() or video.stat().st_size<50000: raise RuntimeError("Final MP4 validation failed")
+ # Validate every required asset and the final MP4 before allowing upload.
+ expected_images=[IMAGES/f"scene_{i}.jpg" for i in range(1,7)]
+ expected_audio=[AUDIO/f"voice_{i}.mp3" for i in range(1,7)]
+ missing=[str(p) for p in expected_images+expected_audio if not p.exists() or p.stat().st_size<500]
+ if missing:
+  raise RuntimeError("Pre-upload validation failed; missing/empty assets: "+", ".join(missing))
+ subtitle_file=OUT/"subtitles.srt"
+ subtitle_text=subtitle_file.read_text(encoding="utf-8")
+ if sum(1 for line in subtitle_text.splitlines() if line.strip().isdigit()) != 6:
+  raise RuntimeError("Pre-upload validation failed: expected six subtitle entries")
+ probe=subprocess.run(["ffprobe","-v","error","-show_streams","-show_format","-of","json",str(video)],capture_output=True,text=True,check=True)
+ media=json.loads(probe.stdout); streams=media.get("streams",[])
+ vstream=next((s for s in streams if s.get("codec_type")=="video"),None)
+ astream=next((s for s in streams if s.get("codec_type")=="audio"),None)
+ if not vstream or not astream:
+  raise RuntimeError("Pre-upload validation failed: MP4 must contain both video and audio")
+ if int(vstream.get("width",0))!=W or int(vstream.get("height",0))!=H:
+  raise RuntimeError("Pre-upload validation failed: unexpected video dimensions")
+ if float(media.get("format",{}).get("duration",0))<15:
+  raise RuntimeError("Pre-upload validation failed: video duration is under 15 seconds")
+ print("PRE-UPLOAD CHECK PASSED: six images, six voice tracks, six subtitle entries, portrait MP4 with audio",flush=True)
  print("AI-ILLUSTRATED VIDEO READY:",video,"STORY:",story["title"],flush=True)
  if os.getenv("YOUTUBE_UPLOAD_ENABLED","").lower()=="true":
   if not os.getenv("YOUTUBE_CLIENT_JSON") or not os.getenv("YOUTUBE_REFRESH_TOKEN"): raise RuntimeError("YouTube OAuth secrets missing")
