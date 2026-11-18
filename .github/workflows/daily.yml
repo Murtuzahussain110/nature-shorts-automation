@@ -48,8 +48,10 @@ jobs:
       - name: Install Python packages
         run: pip install -r requirements.txt
       - name: Install Gradio client for free image provider test
-        run: pip install gradio_client>=1.10.0
-      - name: Test public free Hugging Face image Spaces
+        run: pip install "gradio_client>=1.10.0"
+      - name: Test public free Hugging Face image Spaces (non-blocking preflight)
+        continue-on-error: true
+        timeout-minutes: 5
         run: python test_hf_spaces.py
       - name: Generate six AI-illustrated Urdu story scenes for visual review
         env:
