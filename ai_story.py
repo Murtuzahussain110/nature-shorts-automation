@@ -50,13 +50,30 @@ Keep the same two characters, clothing, colors and proportions in all six scenes
 Make the story emotionally engaging with a clear beginning, problem, teamwork and happy ending.
 No copyrighted characters, no text inside images, no violence, no generic stock-photo descriptions."""
  try:
+  base="https://generativelanguage.googleapis.com/v1beta"
+  listing=requests.get(base+"/models",params={"key":key},timeout=45)
+  listing.raise_for_status()
+  available=listing.json().get("models",[])
+  supported=[m for m in available if "generateContent" in m.get("supportedGenerationMethods",[])]
+  if not supported:
+   raise RuntimeError("This API key has no model that supports generateContent")
+  preferred=("gemini-3.1-flash","gemini-3-flash","gemini-2.5-flash","gemini-2.0-flash")
+  chosen=None
+  for wanted in preferred:
+   chosen=next((m for m in supported if m.get("name","").split("/")[-1].startswith(wanted)),None)
+   if chosen: break
+  if chosen is None:
+   chosen=next((m for m in supported if "flash" in m.get("name","").lower()),supported[0])
+  model=chosen["name"]
+  print("Gemini model selected:",model,flush=True)
   response=requests.post(
-   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+   base+"/"+model+":generateContent",
    params={"key":key},
    json={"contents":[{"parts":[{"text":prompt}]}],
          "generationConfig":{"responseMimeType":"application/json","temperature":0.9}},
    timeout=90)
-  response.raise_for_status()
+  if not response.ok:
+   raise RuntimeError("Gemini "+str(response.status_code)+": "+response.text[:1200])
   payload=response.json()
   raw=payload["candidates"][0]["content"]["parts"][0]["text"].strip()
   if raw.startswith("```"):
