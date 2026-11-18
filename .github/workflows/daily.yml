@@ -99,3 +99,5 @@ jobs:
           path: hf_space_test.png
           if-no-files-found: ignore
           retention-days: 7
+
+# Trigger a fresh validated private-upload run.
