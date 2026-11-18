@@ -161,7 +161,14 @@ def generate_image(prompt,seed,path):
  endpoint="https://image.pollinations.ai/prompt/"+quote(prompt,safe="")
  params={"width":576,"height":1024,"seed":int(seed),"model":"flux","nologo":"true"}
  try:
-  response=requests.get(endpoint,params=params,headers={"Accept":"image/*","User-Agent":"Mozilla/5.0 UrduStoryAutomation/1.0"},timeout=240)
+  response=None
+  for attempt in range(4):
+   response=requests.get(endpoint,params=params,headers={"Accept":"image/*","User-Agent":"Mozilla/5.0 UrduStoryAutomation/1.0"},timeout=240)
+   if response.status_code not in (429,500,502,503,504): break
+   if attempt<3:
+    wait=10*(attempt+1)
+    print(f"Pollinations temporary HTTP {response.status_code}; retrying in {wait}s",flush=True)
+    import time; time.sleep(wait)
   response.raise_for_status()
   content_type=response.headers.get("content-type","").lower()
   if "image" not in content_type:
