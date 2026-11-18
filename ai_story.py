@@ -1,4 +1,4 @@
-import os, json, math, random, subprocess, asyncio, textwrap, shutil
+import os, json, math, random, subprocess, asyncio, textwrap, shutil, inspect
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
@@ -59,7 +59,20 @@ def generate_image(prompt,seed,path):
  last=None
  for attempt in range(3):
   try:
-   client=Client("ByteDance/Hyper-FLUX-8Steps-LoRA",hf_token=os.getenv("HF_TOKEN") or None,verbose=False,download_files=True)
+   token=os.getenv("HF_TOKEN")
+   client_args={"verbose":False,"download_files":True}
+   # Gradio Client auth keyword differs between releases. Detect the installed
+   # version's supported argument instead of assuming hf_token exists.
+   params=inspect.signature(Client.__init__).parameters
+   if token and "hf_token" in params:
+    client_args["hf_token"]=token
+   elif token and "token" in params:
+    client_args["token"]=token
+   elif token:
+    # Alternate clients may rely on huggingface_hub's cached login.
+    from huggingface_hub import login
+    login(token=token, add_to_git_credential=False)
+   client=Client("ByteDance/Hyper-FLUX-8Steps-LoRA",**client_args)
    result=client.predict(
     1024, 576, 8, 3.5, prompt, float(seed),
     api_name="/process_image"
