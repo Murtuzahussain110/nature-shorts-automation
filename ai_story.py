@@ -31,6 +31,53 @@ STORIES=[
   ("تتلی اڑی تو پورا باغ جگمگا اٹھا۔","The butterfly flies free and the entire enchanted garden glows with sparkling lights.") ]}
 ]
 
+
+def generate_story():
+ # Gemini creates one fresh Urdu story and six matching scene descriptions.
+ # If no key/quota/network is available, retain the existing safe story fallback.
+ key=os.getenv("GEMINI_API_KEY")
+ if not key:
+  print("GEMINI_API_KEY missing; using built-in story fallback",flush=True)
+  return random.choice(STORIES)
+ prompt="""Create one original family-friendly Urdu illustrated cartoon short story.
+Return ONLY valid JSON with exactly these keys:
+title (short English title), urdu (Urdu title),
+cast (array of exactly 2 objects with name, species, design),
+scenes (array of exactly 6 objects with narration_urdu and visual_en).
+Narration must be natural Urdu script, one short sentence per scene, suitable for spoken narration.
+visual_en must describe a detailed, specific, visually distinct storybook illustration for that exact moment.
+Keep the same two characters, clothing, colors and proportions in all six scenes.
+Make the story emotionally engaging with a clear beginning, problem, teamwork and happy ending.
+No copyrighted characters, no text inside images, no violence, no generic stock-photo descriptions."""
+ try:
+  response=requests.post(
+   "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+   params={"key":key},
+   json={"contents":[{"parts":[{"text":prompt}]}],
+         "generationConfig":{"responseMimeType":"application/json","temperature":0.9}},
+   timeout=90)
+  response.raise_for_status()
+  payload=response.json()
+  raw=payload["candidates"][0]["content"]["parts"][0]["text"].strip()
+  if raw.startswith("```"):
+   raw=raw.split("\n",1)[1].rsplit("```",1)[0].strip()
+  data=json.loads(raw)
+  cast=data["cast"]; scenes=data["scenes"]
+  if len(cast)!=2 or len(scenes)!=6: raise ValueError("Gemini story must contain 2 characters and 6 scenes")
+  normalized={
+   "title":str(data["title"])[:80],
+   "urdu":str(data["urdu"])[:100],
+   "cast":[(str(x["name"]),str(x["species"]),str(x["design"])) for x in cast],
+   "scenes":[(str(x["narration_urdu"]),str(x["visual_en"])) for x in scenes]
+  }
+  if any(not ur.strip() or not en.strip() for ur,en in normalized["scenes"]):
+   raise ValueError("Gemini returned an empty scene")
+  print("GEMINI STORY READY:",normalized["title"],flush=True)
+  return normalized
+ except Exception as e:
+  print("Gemini story generation unavailable; using built-in story fallback:",str(e),flush=True)
+  return random.choice(STORIES)
+
 def run(cmd):
  p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
  if p.returncode: raise RuntimeError((p.stderr or p.stdout)[-4000:])
@@ -118,7 +165,7 @@ def upload(video,title,description):
  while response is None: status,response=req.next_chunk()
  print("PRIVATE VIDEO: https://www.youtube.com/watch?v="+response["id"],flush=True)
 def main():
- day=datetime.now(timezone.utc).date().toordinal(); story=STORIES[day%len(STORIES)]
+ day=datetime.now(timezone.utc).date().toordinal(); story=generate_story()
  for folder in (IMAGES,AUDIO):
   for f in folder.glob("*"):
    if f.is_file(): f.unlink()
