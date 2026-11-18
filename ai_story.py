@@ -155,8 +155,15 @@ def generate_cloudflare_image(prompt,seed,path):
  print(f"AI IMAGE READY (Cloudflare FLUX.2 Klein 4B): scene seed {seed}, {path.stat().st_size} bytes",flush=True)
 
 def generate_image(prompt,seed,path):
- # Try the existing HF Space first. If its shared ZeroGPU quota is exhausted,
- # use Pollinations' public image endpoint as a second independent provider.
+ # Prefer Cloudflare Workers AI using the account's free daily allocation.
+ # Do not fall back to paid providers or enable billing automatically.
+ if os.getenv("CLOUDFLARE_ACCOUNT_ID") and os.getenv("CLOUDFLARE_API_TOKEN"):
+  try:
+   generate_cloudflare_image(prompt,seed,path)
+   return
+  except Exception as e:
+   print(f"Cloudflare Workers AI unavailable; trying free fallback: {e}",flush=True)
+ # Try the existing HF Space if Cloudflare is unavailable.
  last=None
  try:
   token=os.getenv("HF_TOKEN")
