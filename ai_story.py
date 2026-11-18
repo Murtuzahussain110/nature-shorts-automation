@@ -53,54 +53,61 @@ def image_prompt(story,scene_en):
          f"Recurring character designs must stay exactly consistent: {cast}. "
          f"Scene: {scene_en} "
          "Portrait vertical 9:16 composition, full scene visible, no words, no letters, no captions, no watermark, not 3D, not photorealistic.")
+def validate_image(path):
+ from PIL import Image
+ with Image.open(path) as im:
+  im.verify()
+ if path.stat().st_size<10000:
+  raise RuntimeError("Image provider returned an incomplete image")
+
 def generate_image(prompt,seed,path):
- # Tested public Hugging Face Hyper-FLUX Space. The repository's free-provider
- # workflow successfully generated a real 1.3 MB illustration from this endpoint.
+ # Try the existing HF Space first. If its shared ZeroGPU quota is exhausted,
+ # use Pollinations' public image endpoint as a second independent provider.
  last=None
- for attempt in range(3):
-  try:
-   token=os.getenv("HF_TOKEN")
-   client_args={"verbose":False,"download_files":True}
-   # Gradio Client auth keyword differs between releases. Detect the installed
-   # version's supported argument instead of assuming hf_token exists.
-   params=inspect.signature(Client.__init__).parameters
-   if token and "hf_token" in params:
-    client_args["hf_token"]=token
-   elif token and "token" in params:
-    client_args["token"]=token
-   elif token:
-    # Alternate clients may rely on huggingface_hub's cached login.
-    from huggingface_hub import login
-    login(token=token, add_to_git_credential=False)
-   client=Client("ByteDance/Hyper-FLUX-8Steps-LoRA",**client_args)
-   result=client.predict(
-    1024, 576, 8, 3.5, prompt, float(seed),
-    api_name="/process_image"
-   )
-   image_result=result[0] if isinstance(result,(list,tuple)) else result
-   source=image_result.get("path") if isinstance(image_result,dict) else image_result
-   if not source:
-    raise RuntimeError("Hyper-FLUX Space returned no image path")
-   if str(source).startswith("http"):
-    response=requests.get(source,timeout=120)
-    response.raise_for_status()
-    path.write_bytes(response.content)
-   else:
-    shutil.copyfile(str(source),path)
-   from PIL import Image
-   with Image.open(path) as im:
-    im.verify()
-   if path.stat().st_size<10000:
-    raise RuntimeError("Hyper-FLUX Space returned an incomplete image")
-   print(f"AI IMAGE READY: scene seed {seed}, {path.stat().st_size} bytes",flush=True)
-   return
-  except Exception as e:
-   last=e
-   print(f"Hyper-FLUX attempt {attempt+1}/3 failed: {e}",flush=True)
-   if attempt<2:
-    import time
-    time.sleep(15*(attempt+1))
- raise RuntimeError("FREE HUGGING FACE Hyper-FLUX IMAGE GENERATION FAILED after 3 attempts. No procedural or stock-image fallback was used. "+str(last))
+ try:
+  token=os.getenv("HF_TOKEN")
+  client_args={"verbose":False,"download_files":True}
+  params=inspect.signature(Client.__init__).parameters
+  if token and "hf_token" in params:
+   client_args["hf_token"]=token
+  elif token and "token" in params:
+   client_args["token"]=token
+  elif token:
+   from huggingface_hub import login
+   login(token=token, add_to_git_credential=False)
+  client=Client("ByteDance/Hyper-FLUX-8Steps-LoRA",**client_args)
+  result=client.predict(1024,576,8,3.5,prompt,float(seed),api_name="/process_image")
+  image_result=result[0] if isinstance(result,(list,tuple)) else result
+  source=image_result.get("path") if isinstance(image_result,dict) else image_result
+  if not source: raise RuntimeError("Hyper-FLUX returned no image path")
+  if str(source).startswith("http"):
+   response=requests.get(source,timeout=120); response.raise_for_status()
+   path.write_bytes(response.content)
+  else:
+   shutil.copyfile(str(source),path)
+  validate_image(path)
+  print(f"AI IMAGE READY (Hugging Face): scene seed {seed}, {path.stat().st_size} bytes",flush=True)
+  return
+ except Exception as e:
+  last=e
+  print(f"Hugging Face unavailable; trying independent free image provider: {e}",flush=True)
+
+ # Public fallback. It is free to try but may impose its own rate limits;
+ # no paid key, subscription, or credits are used.
+ endpoint="https://image.pollinations.ai/prompt/"+quote(prompt,safe="")
+ params={"width":576,"height":1024,"seed":int(seed),"model":"flux","nologo":"true"}
+ try:
+  response=requests.get(endpoint,params=params,headers={"Accept":"image/*","User-Agent":"Mozilla/5.0 UrduStoryAutomation/1.0"},timeout=240)
+  response.raise_for_status()
+  content_type=response.headers.get("content-type","").lower()
+  if "image" not in content_type:
+   raise RuntimeError("Fallback provider did not return an image (content-type: "+content_type+")")
+  path.write_bytes(response.content)
+  validate_image(path)
+  print(f"AI IMAGE READY (Pollinations fallback): scene seed {seed}, {path.stat().st_size} bytes",flush=True)
+  return
+ except Exception as e:
+  raise RuntimeError("Both free image providers failed. Hugging Face: "+str(last)+" | Pollinations: "+str(e))
 
 def upload(video,title,description):
  client=json.loads(os.environ["YOUTUBE_CLIENT_JSON"]); info=client.get("installed") or client.get("web")
