@@ -124,6 +124,36 @@ def validate_image(path):
  if path.stat().st_size<10000:
   raise RuntimeError("Image provider returned an incomplete image")
 
+def generate_cloudflare_image(prompt,seed,path):
+ # Cloudflare Workers AI free daily allocation; no paid fallback or billing activation.
+ account=os.getenv("CLOUDFLARE_ACCOUNT_ID")
+ token=os.getenv("CLOUDFLARE_API_TOKEN")
+ if not account or not token:
+  raise RuntimeError("Cloudflare credentials are not configured")
+ model="@cf/black-forest-labs/flux-2-klein-4b"
+ url=f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{model}"
+ response=requests.post(url,headers={"Authorization":f"Bearer {token}","Content-Type":"application/json"},
+  json={"prompt":prompt,"width":576,"height":1024,"seed":int(seed)},timeout=240)
+ if not response.ok:
+  raise RuntimeError(f"Cloudflare Workers AI HTTP {response.status_code}: {response.text[:1200]}")
+ content_type=response.headers.get("content-type","").lower()
+ if "image/" in content_type:
+  path.write_bytes(response.content)
+ else:
+  try:
+   payload=response.json()
+   result=payload.get("result",payload)
+   encoded=result.get("image") or result.get("data")
+   if isinstance(encoded,list): encoded=encoded[0]
+   if not isinstance(encoded,str): raise ValueError("No base64 image field in response")
+   import base64
+   if encoded.startswith("data:"): encoded=encoded.split(",",1)[1]
+   path.write_bytes(base64.b64decode(encoded))
+  except Exception as e:
+   raise RuntimeError("Could not decode Cloudflare image response: "+str(e))
+ validate_image(path)
+ print(f"AI IMAGE READY (Cloudflare FLUX.2 Klein 4B): scene seed {seed}, {path.stat().st_size} bytes",flush=True)
+
 def generate_image(prompt,seed,path):
  # Try the existing HF Space first. If its shared ZeroGPU quota is exhausted,
  # use Pollinations' public image endpoint as a second independent provider.
