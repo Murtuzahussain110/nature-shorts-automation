@@ -1,27 +1,40 @@
-name: Daily Urdu Cartoon Story Shorts
+name: Daily Urdu and English Story Shorts
 
 on:
   pull_request:
     branches: [main]
     paths:
       - 'main.py'
+      - 'ai_story.py'
+      - 'test_hf_spaces.py'
       - 'requirements.txt'
       - '.github/workflows/daily.yml'
   push:
     branches: [main]
     paths:
       - 'main.py'
+      - 'ai_story.py'
+      - 'test_hf_spaces.py'
+      - 'blender/**'
       - 'requirements.txt'
       - '.github/workflows/daily.yml'
   workflow_dispatch:
+    inputs:
+      language:
+        description: "Video language"
+        required: true
+        type: choice
+        options: [ur, en]
+        default: ur
   schedule:
-    - cron: "0 13 * * *"
+    - cron: "0 3 * * *" # 8:00 AM Pakistan time - English
+    - cron: "0 13 * * *" # 6:00 PM Pakistan time - Urdu
 
 permissions:
   contents: read
 
 concurrency:
-  group: daily-urdu-cartoon-story
+  group: daily-cinematic-urdu-story
   cancel-in-progress: false
 
 jobs:
@@ -42,13 +55,24 @@ jobs:
           sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-noto-core
       - name: Install Python packages
         run: pip install -r requirements.txt
-      - name: Create Urdu story video for visual review
+      - name: Install Gradio client for free image provider test
+        run: pip install "gradio_client>=1.10.0"
+      - name: Test public free Hugging Face image Spaces (non-blocking preflight)
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python test_hf_spaces.py
+      - name: Generate six AI-illustrated story scenes
         env:
+          STORY_LANGUAGE: ${{ github.event.schedule == '0 3 * * *' && 'en' || github.event.schedule == '0 13 * * *' && 'ur' || inputs.language || 'ur' }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
           YOUTUBE_PRIVACY_STATUS: private
           YOUTUBE_UPLOAD_ENABLED: true
-        run: python main.py
+        run: python ai_story.py
       - name: Verify MP4 video, audio, subtitles and portrait format
         if: success()
         run: |
@@ -62,8 +86,8 @@ jobs:
           video = next((s for s in streams if s.get("codec_type") == "video"), None)
           audio = next((s for s in streams if s.get("codec_type") == "audio"), None)
           assert video, "MP4 has no video stream"
-          assert audio, "MP4 has no voice/audio stream"
-          assert int(video["width"]) < int(video["height"]), "Video is not portrait"
+          assert audio, "MP4 has no Urdu voice/audio stream"
+          assert int(video["width"]) < int(video["height"]), "Video is not portrait 9:16"
           duration = float(data["format"]["duration"])
           assert duration >= 15, f"Video too short: {duration:.2f}s"
           print(f"VERIFIED: {video['width']}x{video['height']}, {duration:.2f}s, video+audio streams, subtitles present")
@@ -72,7 +96,17 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: urdu-cartoon-story-output
+          name: cinematic-urdu-story-output
           path: output/
           if-no-files-found: ignore
           retention-days: 7
+      - name: Save free provider test image
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hf-free-space-test-image
+          path: hf_space_test.png
+          if-no-files-found: ignore
+          retention-days: 7
+
+# Trigger a fresh validated private-upload run.
