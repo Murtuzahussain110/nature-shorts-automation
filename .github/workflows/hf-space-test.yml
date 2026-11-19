@@ -1,0 +1,30 @@
+name: Free Hugging Face Image Provider Test
+on:
+  push:
+    branches: [mobile-cartoon-studio]
+    paths:
+      - 'test_hf_spaces.py'
+      - '.github/workflows/hf-space-test.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test-free-spaces:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install image test dependencies
+        run: pip install requests Pillow gradio_client>=1.10.0
+      - name: Discover and test public free image Spaces
+        run: python test_hf_spaces.py
+      - name: Save test illustration
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hf-free-space-test-image
+          path: hf_space_test.png
+          retention-days: 7
