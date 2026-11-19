@@ -102,7 +102,14 @@ No copyrighted characters, no text inside images, no violence, no generic stock-
   return normalized
  except Exception as e:
   print("Gemini story generation unavailable; using built-in story fallback:",str(e),flush=True)
-  return random.choice(STORIES)
+  fallback=random.choice(STORIES)
+  if STORY_LANGUAGE=="en":
+   english={
+    "The Lost Star":["Milo found a tiny shining star in the forest.","Pip said they must help it return to the sky.","Together, they climbed the rocky hill.","A strong wind almost blew the star away.","Milo and Pip held on and protected it together.","The star returned to the sky, and the friends smiled."],
+    "The Magic Garden":["Nori discovered a secret little door in an old tree.","Zuzu opened it, and magical light filled the air.","Behind it was a garden full of colorful flowers.","A tiny butterfly was trapped among the flowers.","The friends carefully helped the butterfly get free.","The butterfly flew away, and the garden sparkled."]
+   }
+   fallback["scenes"]=[(english[fallback["title"]][i],scene[1]) for i,scene in enumerate(fallback["scenes"])]
+  return fallback
 
 def run(cmd):
  p=subprocess.run(cmd,stdout=subprocess.PIPE,stderr=subprocess.PIPE,text=True)
