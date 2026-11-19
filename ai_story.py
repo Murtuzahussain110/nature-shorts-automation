@@ -283,5 +283,5 @@ def main():
  print("AI-ILLUSTRATED VIDEO READY:",video,"STORY:",story["title"],flush=True)
  if os.getenv("YOUTUBE_UPLOAD_ENABLED","").lower()=="true":
   if not os.getenv("YOUTUBE_CLIENT_JSON") or not os.getenv("YOUTUBE_REFRESH_TOKEN"): raise RuntimeError("YouTube OAuth secrets missing")
-  upload(video,story["title"]+" | Urdu Cartoon Story #Shorts",f"{story['urdu']}\n\n#UrduStory #Cartoon #Shorts")
+  upload(video, story["title"] + (" | English Cartoon Story #Shorts" if STORY_LANGUAGE == "en" else " | Urdu Cartoon Story #Shorts"), "#EnglishStory #Cartoon #Shorts" if STORY_LANGUAGE == "en" else "#UrduStory #Cartoon #Shorts")
 if __name__=="__main__": main()
