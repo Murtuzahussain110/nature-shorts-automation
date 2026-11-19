@@ -48,7 +48,11 @@ def generate_story():
    }
    fallback["scenes"]=[(english[fallback["title"]][i],scene[1]) for i,scene in enumerate(fallback["scenes"])]
   return fallback
- prompt=f"""Create one original family-friendly {("English" if STORY_LANGUAGE=="en" else "Urdu")} illustrated cartoon short story.
+ theme_cycle=["honesty when afraid","kindness to a lonely classmate","sharing instead of being greedy","patience while learning a skill","keeping a promise","protecting a small animal","teamwork during a storm","admitting a mistake and fixing it","respecting an elderly neighbour","bravery without bullying","saving water","including someone who feels left out","returning something that does not belong to you","forgiving a friend","helping without expecting a reward"]
+ theme_index=(datetime.now(timezone.utc).date().toordinal() + (3 if STORY_LANGUAGE=="en" else 0)) % len(theme_cycle)
+ today_theme=theme_cycle[theme_index]
+ prompt=f"""Create one ORIGINAL, emotionally engaging family-friendly {("English" if STORY_LANGUAGE=="en" else "Urdu")} illustrated cartoon story.
+TODAY'S REQUIRED MORAL THEME: {today_theme}. Build a completely new plot around this theme; do not use a lost-star, magic-garden, balloon-rescue, or generic lost-and-found plot.
 Return ONLY valid JSON with exactly these keys:
 title (short English title), urdu (Urdu title),
 cast (array of exactly 2 objects with name, species, design),
@@ -56,7 +60,7 @@ scenes (array of exactly 6 objects with narration_text and visual_en).
 Narration must be natural {("English" if STORY_LANGUAGE=="en" else "Urdu script")}, one short sentence per scene, suitable for spoken narration.
 visual_en must describe a detailed, specific, visually distinct storybook illustration for that exact moment.
 Keep the same two characters, clothing, colors and proportions in all six scenes.
-Make the story emotionally engaging with a clear beginning, problem, teamwork and happy ending.
+Make the six scenes a real mini-story with a surprising but child-safe problem, meaningful choices, consequences, and a satisfying happy ending. Scene 6 MUST clearly express the moral lesson in simple natural narration, not just say everyone smiled. Make each daily story substantially different in setting, problem, actions, and outcome; avoid repeating previous plots or the same rescue structure. Use vivid child-friendly details and genuine emotion.
 No copyrighted characters, no text inside images, no violence, no generic stock-photo descriptions."""
  try:
   base="https://generativelanguage.googleapis.com/v1beta"
