@@ -292,3 +292,5 @@ def main():
   if not os.getenv("YOUTUBE_CLIENT_JSON") or not os.getenv("YOUTUBE_REFRESH_TOKEN"): raise RuntimeError("YouTube OAuth secrets missing")
   upload(video, story["title"] + (" | English Cartoon Story #Shorts" if STORY_LANGUAGE == "en" else " | Urdu Cartoon Story #Shorts"), "#EnglishStory #Cartoon #Shorts" if STORY_LANGUAGE == "en" else "#UrduStory #Cartoon #Shorts")
 if __name__=="__main__": main()
+
+# Trigger a fresh private YouTube upload after successful validation.
