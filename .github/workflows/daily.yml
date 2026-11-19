@@ -62,7 +62,7 @@ jobs:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
-          YOUTUBE_PRIVACY_STATUS: private
+          YOUTUBE_PRIVACY_STATUS: public
           YOUTUBE_UPLOAD_ENABLED: true
         run: python ai_story.py
       - name: Verify MP4 video, audio, subtitles and portrait format
