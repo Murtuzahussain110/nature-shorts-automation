@@ -238,7 +238,7 @@ def upload(video,title,description):
  client=json.loads(os.environ["YOUTUBE_CLIENT_JSON"]); info=client.get("installed") or client.get("web")
  creds=Credentials(None,refresh_token=os.environ["YOUTUBE_REFRESH_TOKEN"],token_uri=info.get("token_uri","https://oauth2.googleapis.com/token"),client_id=info["client_id"],client_secret=info["client_secret"],scopes=["https://www.googleapis.com/auth/youtube.upload"])
  yt=build("youtube","v3",credentials=creds)
- req=yt.videos().insert(part="snippet,status",body={"snippet":{"title":title[:100],"description":description,"tags":["Urdu cartoon","illustrated story","shorts"],"categoryId":"1"},"status":{"privacyStatus":"private","selfDeclaredMadeForKids":False}},media_body=MediaFileUpload(str(video),mimetype="video/mp4",resumable=True))
+ req=yt.videos().insert(part="snippet,status",body={"snippet":{"title":title[:100],"description":description,"tags":(["English cartoon","English story","shorts"] if STORY_LANGUAGE=="en" else ["Urdu cartoon","Urdu story","shorts"]),"categoryId":"1"},"status":{"privacyStatus":"private","selfDeclaredMadeForKids":False}},media_body=MediaFileUpload(str(video),mimetype="video/mp4",resumable=True))
  response=None
  while response is None: status,response=req.next_chunk()
  print("PRIVATE VIDEO: https://www.youtube.com/watch?v="+response["id"],flush=True)
