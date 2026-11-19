@@ -1,14 +1,6 @@
 name: Daily Urdu and English Story Shorts
 
 on:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'main.py'
-      - 'ai_story.py'
-      - 'test_hf_spaces.py'
-      - 'requirements.txt'
-      - '.github/workflows/daily.yml'
   push:
     branches: [main]
     paths:
