@@ -10,7 +10,7 @@ on:
       - 'requirements.txt'
       - '.github/workflows/daily.yml'
   push:
-    branches: [main, mobile-cartoon-studio]
+    branches: [main]
     paths:
       - 'main.py'
       - 'ai_story.py'
