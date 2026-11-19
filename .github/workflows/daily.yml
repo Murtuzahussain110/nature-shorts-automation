@@ -1,4 +1,4 @@
-name: Daily Cinematic Urdu Story Shorts
+name: Daily Urdu and English Story Shorts
 
 on:
   pull_request:
@@ -19,8 +19,16 @@ on:
       - 'requirements.txt'
       - '.github/workflows/daily.yml'
   workflow_dispatch:
+    inputs:
+      language:
+        description: "Video language"
+        required: true
+        type: choice
+        options: [ur, en]
+        default: ur
   schedule:
-    - cron: "0 13 * * *"
+    - cron: "0 3 * * *" # 8:00 AM Pakistan time - English
+    - cron: "0 13 * * *" # 6:00 PM Pakistan time - Urdu
 
 permissions:
   contents: read
@@ -53,8 +61,9 @@ jobs:
         continue-on-error: true
         timeout-minutes: 5
         run: python test_hf_spaces.py
-      - name: Generate six AI-illustrated Urdu story scenes for visual review
+      - name: Generate six AI-illustrated story scenes
         env:
+          STORY_LANGUAGE: ${{ github.event.schedule == '0 3 * * *' && 'en' || github.event.schedule == '0 13 * * *' && 'ur' || inputs.language || 'ur' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
