@@ -13,7 +13,9 @@ ROOT=Path(__file__).resolve().parent
 OUT=ROOT/"output"; IMAGES=OUT/"scenes"; AUDIO=OUT/"audio"
 for p in (OUT,IMAGES,AUDIO): p.mkdir(parents=True,exist_ok=True)
 W,H,FPS=540,960,12
-VOICE_A="ur-PK-UzmaNeural"; VOICE_B="ur-PK-AsadNeural"
+STORY_LANGUAGE=os.getenv("STORY_LANGUAGE","ur").lower()
+if STORY_LANGUAGE not in ("ur","en"): raise ValueError("STORY_LANGUAGE must be ur or en")
+VOICE_A,VOICE_B=("en-US-JennyNeural","en-US-GuyNeural") if STORY_LANGUAGE=="en" else ("ur-PK-UzmaNeural","ur-PK-AsadNeural")
 STORIES=[
  {"title":"The Lost Star","urdu":"گمشدہ ستارہ","cast":[("Milo","fox","warm orange fox with cream muzzle, teal scarf"),("Pip","rabbit","small lavender rabbit with long ears, yellow waistcoat")],
   "scenes":[("رات کے جنگل میں مِلو کو گھاس پر ایک ننھا چمکتا ستارہ ملا۔","Milo discovers a tiny glowing fallen star in a moonlit forest clearing."),
@@ -39,12 +41,12 @@ def generate_story():
  if not key:
   print("GEMINI_API_KEY missing; using built-in story fallback",flush=True)
   return random.choice(STORIES)
- prompt="""Create one original family-friendly Urdu illustrated cartoon short story.
+ prompt=f"""Create one original family-friendly {("English" if STORY_LANGUAGE=="en" else "Urdu")} illustrated cartoon short story.
 Return ONLY valid JSON with exactly these keys:
 title (short English title), urdu (Urdu title),
 cast (array of exactly 2 objects with name, species, design),
-scenes (array of exactly 6 objects with narration_urdu and visual_en).
-Narration must be natural Urdu script, one short sentence per scene, suitable for spoken narration.
+scenes (array of exactly 6 objects with narration_text and visual_en).
+Narration must be natural {("English" if STORY_LANGUAGE=="en" else "Urdu script")}, one short sentence per scene, suitable for spoken narration.
 visual_en must describe a detailed, specific, visually distinct storybook illustration for that exact moment.
 Keep the same two characters, clothing, colors and proportions in all six scenes.
 Make the story emotionally engaging with a clear beginning, problem, teamwork and happy ending.
@@ -85,7 +87,7 @@ No copyrighted characters, no text inside images, no violence, no generic stock-
    "title":str(data["title"])[:80],
    "urdu":str(data["urdu"])[:100],
    "cast":[(str(x["name"]),str(x["species"]),str(x["design"])) for x in cast],
-   "scenes":[(str(x["narration_urdu"]),str(x["visual_en"])) for x in scenes]
+   "scenes":[(str(x.get("narration_text") or x.get("narration_urdu") or x.get("narration_english") or ""),str(x["visual_en"])) for x in scenes]
   }
   if any(not ur.strip() or not en.strip() for ur,en in normalized["scenes"]):
    raise ValueError("Gemini returned an empty scene")
