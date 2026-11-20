@@ -10,7 +10,7 @@ from googleapiclient.http import MediaFileUpload
 ROOT=Path(__file__).resolve().parent
 OUT=ROOT/"output"; FRAMES=OUT/"frames"; AUDIO=OUT/"audio"
 for p in (OUT,FRAMES,AUDIO): p.mkdir(parents=True,exist_ok=True)
-VIDEO=OUT/"daily_story.mp4"; W,H,FPS=540,960,12
+VIDEO=OUT/"daily_story.mp4"; W,H,FPS=540,960,30
 VOICE_A="ur-PK-UzmaNeural"; VOICE_B="ur-PK-AsadNeural"
 FONTS="/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 
