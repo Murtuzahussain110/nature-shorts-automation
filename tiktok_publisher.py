@@ -19,6 +19,9 @@ def required(name):
     return value
 
 def main():
+    if not os.getenv("TIKTOK_ACCESS_TOKEN", "").strip():
+        print("TikTok publishing skipped: TIKTOK_ACCESS_TOKEN is not configured.")
+        return
     video_path = sys.argv[1] if len(sys.argv) > 1 else "output/daily_story.mp4"
     if not os.path.isfile(video_path):
         raise RuntimeError(f"Video file not found: {video_path}")
