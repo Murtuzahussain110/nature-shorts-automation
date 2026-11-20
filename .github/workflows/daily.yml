@@ -34,6 +34,9 @@ jobs:
   daily:
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      TIKTOK_WORKER_URL: ${{ secrets.TIKTOK_WORKER_URL }}
+      TIKTOK_AUTOMATION_SECRET: ${{ secrets.TIKTOK_AUTOMATION_SECRET }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -68,10 +71,7 @@ jobs:
         run: python ai_story.py
       - name: Get a fresh TikTok access token from secure Cloudflare backend
         id: tiktok-token
-        if: success() && secrets.TIKTOK_WORKER_URL != '' && secrets.TIKTOK_AUTOMATION_SECRET != ''
-        env:
-          TIKTOK_WORKER_URL: ${{ secrets.TIKTOK_WORKER_URL }}
-          TIKTOK_AUTOMATION_SECRET: ${{ secrets.TIKTOK_AUTOMATION_SECRET }}
+        if: success() && env.TIKTOK_WORKER_URL != '' && env.TIKTOK_AUTOMATION_SECRET != ''
         run: |
           response=$(curl --fail --silent --show-error \
             -H "Authorization: Bearer $TIKTOK_AUTOMATION_SECRET" \
