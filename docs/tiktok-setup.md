@@ -15,10 +15,7 @@ Remove `video.upload` if the app does not offer draft/inbox uploads. Do not requ
 After TikTok approves the app and the TikTok account owner completes OAuth authorization, add these under repository Settings → Secrets and variables → Actions:
 
 - `TIKTOK_ACCESS_TOKEN`: OAuth access token for the authorized TikTok account.
-- `TIKTOK_CLIENT_KEY`: app client key.
-- `TIKTOK_CLIENT_SECRET`: app client secret.
-
-Never put tokens or the client secret in source files, commits, screenshots, or chat. The current workflow does not refresh OAuth tokens automatically; access tokens expire, so a production-ready OAuth callback/token-refresh service is still required before unattended long-term publishing.
+Never put tokens in source files, commits, screenshots, or chat. The current workflow does not refresh OAuth tokens automatically; access tokens expire, so a production-ready OAuth callback/token-refresh service is still required before unattended long-term publishing.
 
 ## What the workflow does
 
