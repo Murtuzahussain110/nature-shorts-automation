@@ -9,6 +9,7 @@ on:
       - 'test_hf_spaces.py'
       - 'blender/**'
       - 'requirements.txt'
+      - 'cloudflare/tiktok-oauth/**'
       - '.github/workflows/daily.yml'
   workflow_dispatch:
     inputs:
@@ -65,12 +66,23 @@ jobs:
           YOUTUBE_PRIVACY_STATUS: public
           YOUTUBE_UPLOAD_ENABLED: true
         run: python ai_story.py
-      - name: Publish to TikTok (optional; requires approved app OAuth secrets)
-        if: success()
+      - name: Get a fresh TikTok access token from secure Cloudflare backend
+        id: tiktok-token
+        if: success() && secrets.TIKTOK_WORKER_URL != '' && secrets.TIKTOK_AUTOMATION_SECRET != ''
         env:
-          TIKTOK_ACCESS_TOKEN: ${{ secrets.TIKTOK_ACCESS_TOKEN }}
-          TIKTOK_CLIENT_KEY: ${{ secrets.TIKTOK_CLIENT_KEY }}
-          TIKTOK_CLIENT_SECRET: ${{ secrets.TIKTOK_CLIENT_SECRET }}
+          TIKTOK_WORKER_URL: ${{ secrets.TIKTOK_WORKER_URL }}
+          TIKTOK_AUTOMATION_SECRET: ${{ secrets.TIKTOK_AUTOMATION_SECRET }}
+        run: |
+          response=$(curl --fail --silent --show-error \
+            -H "Authorization: Bearer $TIKTOK_AUTOMATION_SECRET" \
+            "$TIKTOK_WORKER_URL/internal/access-token")
+          token=$(python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<< "$response")
+          echo "::add-mask::$token"
+          echo "access_token=$token" >> "$GITHUB_OUTPUT"
+      - name: Publish to TikTok (only after OAuth connection)
+        if: success() && steps.tiktok-token.outputs.access_token != ''
+        env:
+          TIKTOK_ACCESS_TOKEN: ${{ steps.tiktok-token.outputs.access_token }}
         run: python tiktok_publisher.py output/daily_story.mp4
       - name: Verify MP4 video, audio, subtitles and portrait format
         if: success()
