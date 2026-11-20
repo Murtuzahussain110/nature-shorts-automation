@@ -27,8 +27,6 @@ def main():
         raise RuntimeError(f"Video file not found: {video_path}")
 
     token = required("TIKTOK_ACCESS_TOKEN")
-    client_key = required("TIKTOK_CLIENT_KEY")
-    client_secret = required("TIKTOK_CLIENT_SECRET")
     title = os.getenv("TIKTOK_POST_TITLE", "A new cartoon story! #cartoon #kids #story")[:150]
     size = os.path.getsize(video_path)
     if size <= 0:
