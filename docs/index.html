@@ -3,12 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>CN Fun Cartoons Automation</title>
-<style>body{font:16px/1.6 system-ui,sans-serif;max-width:760px;margin:10vh auto;padding:0 22px;color:#222}a{color:#0759b8}</style>
+<title>CN Fun Cartoons</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;background:#101322;color:#f7f7fb}
+.wrap{max-width:760px;margin:0 auto;padding:48px 20px}.card{background:#1b2035;border:1px solid #343b59;border-radius:22px;padding:28px}
+.logo{font-size:14px;letter-spacing:2px;color:#aeb8ff;font-weight:700}h1{font-size:clamp(32px,7vw,48px);line-height:1.1;margin:14px 0}p{color:#c9cce0}.btn{display:inline-block;background:#fe2c55;color:white;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px;margin:14px 0}.muted{font-size:13px;color:#9da4c2}.links{display:flex;gap:20px;flex-wrap:wrap;margin-top:24px}.links a{color:#b8c2ff}.steps{padding-left:20px;color:#d8daea}.steps li{margin:8px 0}
+</style>
 </head>
 <body>
-<h1>CN Fun Cartoons Automation</h1>
-<p>A personal project for preparing and publishing original cartoon videos to connected social-media accounts.</p>
-<ul><li><a href="terms.html">Terms of Service</a></li><li><a href="privacy.html">Privacy Policy</a></li></ul>
-<p>Platform access is subject to each platform's authorization, permissions, and review.</p>
-</body></html>
+<main class="wrap">
+<div class="logo">CN FUN CARTOONS</div>
+<section class="card">
+<h1>Connect your TikTok account</h1>
+<p>Connect your own TikTok account to authorize CN Fun Cartoons to publish original cartoon videos on your behalf. You will be redirected to TikTok to sign in and review the requested permissions.</p>
+<a class="btn" href="https://cn-fun-cartoons-tiktok-oauth.baqar786abbs.workers.dev/auth/tiktok/start">Connect TikTok</a>
+<p class="muted">You control the authorization. You can cancel on TikTok at any time. Connecting an account does not publish a video automatically.</p>
+<h2>How it works</h2>
+<ol class="steps">
+<li>Select “Connect TikTok”.</li>
+<li>Sign in to TikTok and review the requested access.</li>
+<li>Approve or cancel the connection on TikTok.</li>
+<li>Return to this page after authorization.</li>
+</ol>
+</section>
+<nav class="links"><a href="terms.html">Terms of Service</a><a href="privacy.html">Privacy Policy</a></nav>
+</main>
+</body>
+</html>
