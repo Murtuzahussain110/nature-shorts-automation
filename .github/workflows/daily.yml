@@ -79,10 +79,11 @@ jobs:
           token=$(python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<< "$response")
           echo "::add-mask::$token"
           echo "access_token=$token" >> "$GITHUB_OUTPUT"
-      - name: Publish to TikTok (only after OAuth connection)
-        if: success() && steps.tiktok-token.outputs.access_token != ''
+      - name: Publish to TikTok automatically
+        if: success()
         env:
           TIKTOK_ACCESS_TOKEN: ${{ steps.tiktok-token.outputs.access_token }}
+          STORY_LANGUAGE: ${{ github.event.schedule == '0 3 * * *' && 'en' || github.event.schedule == '0 13 * * *' && 'ur' || inputs.language || 'ur' }}
         run: python tiktok_publisher.py output/daily_story.mp4
       - name: Verify MP4 video, audio, subtitles and portrait format
         if: success()
