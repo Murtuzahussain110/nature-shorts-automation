@@ -88,7 +88,17 @@ def main():
         f"{API}/post/publish/video/init/",
         headers=headers, json=payload, timeout=45
     )
-    init.raise_for_status()
+    # Preserve TikTok's structured error response; raise_for_status()
+    # otherwise hides the API's actionable error code and message in Actions logs.
+    if not init.ok:
+        try:
+            error_body = init.json()
+        except ValueError:
+            error_body = init.text[:2000]
+        raise RuntimeError(
+            f"TikTok publish initialization rejected: HTTP {init.status_code}; "
+            f"response: {error_body}"
+        )
     init_data = init.json()
     if init_data.get("error", {}).get("code") != "ok":
         raise RuntimeError("TikTok publish initialization failed: " + str(init_data.get("error", {})))
