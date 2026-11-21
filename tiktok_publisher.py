@@ -1,9 +1,7 @@
-"""Publish an already-rendered MP4 to TikTok using Content Posting API Direct Post.
+"""Automatically publish the generated Short to TikTok using Direct Post.
 
-Required environment:
-  TIKTOK_ACCESS_TOKEN, TIKTOK_CLIENT_KEY, TIKTOK_CLIENT_SECRET
-The access token must belong to the account that authorized this app and include
-video.publish. Never commit credentials or print them to logs.
+The GitHub Actions workflow obtains a short-lived access token from the
+Cloudflare OAuth worker. No TikTok credentials are stored in this script.
 """
 import os
 import sys
@@ -12,22 +10,29 @@ import requests
 
 API = "https://open.tiktokapis.com/v2"
 
+
 def required(name):
     value = os.getenv(name, "").strip()
     if not value:
         raise RuntimeError(f"Missing required GitHub Actions secret/environment value: {name}")
     return value
 
+
 def main():
-    if not os.getenv("TIKTOK_ACCESS_TOKEN", "").strip():
-        print("TikTok publishing skipped: TIKTOK_ACCESS_TOKEN is not configured.")
-        return
     video_path = sys.argv[1] if len(sys.argv) > 1 else "output/daily_story.mp4"
     if not os.path.isfile(video_path):
         raise RuntimeError(f"Video file not found: {video_path}")
 
     token = required("TIKTOK_ACCESS_TOKEN")
-    title = os.getenv("TIKTOK_POST_TITLE", "A new cartoon story! #cartoon #kids #story")[:150]
+    language = os.getenv("STORY_LANGUAGE", "ur").lower()
+    if language not in ("ur", "en"):
+        language = "ur"
+    title = os.getenv(
+        "TIKTOK_POST_TITLE",
+        "A new Urdu cartoon story! #UrduCartoon #CartoonShorts #CNFunCartoons"
+        if language == "ur"
+        else "A new English cartoon story! #EnglishCartoon #CartoonShorts #CNFunCartoons"
+    )[:150]
     size = os.path.getsize(video_path)
     if size <= 0:
         raise RuntimeError("Video file is empty")
@@ -38,19 +43,31 @@ def main():
         headers=headers, json={}, timeout=30
     )
     creator.raise_for_status()
-    creator_data = creator.json()
-    if creator_data.get("error", {}).get("code") != "ok":
-        raise RuntimeError("TikTok creator-info check failed: " + str(creator_data.get("error", {})))
-    data = creator_data.get("data") or {}
-    privacy_options = data.get("privacy_level_options") or []
-    if not privacy_options:
-        raise RuntimeError("TikTok did not return allowed privacy levels for this account")
-    privacy = "SELF_ONLY" if "SELF_ONLY" in privacy_options else privacy_options[0]
+    creator_body = creator.json()
+    if creator_body.get("error", {}).get("code") != "ok":
+        raise RuntimeError("TikTok creator-info check failed: " + str(creator_body.get("error", {})))
+    creator_data = creator_body.get("data") or {}
+    privacy_options = creator_data.get("privacy_level_options") or []
+    # Do not silently publish privately: public auto-posting is the requested behaviour.
+    privacy = "PUBLIC_TO_EVERYONE"
+    if privacy not in privacy_options:
+        raise RuntimeError(
+            "TikTok account/app does not currently allow PUBLIC_TO_EVERYONE Direct Post. "
+            "Available privacy options: " + ", ".join(privacy_options)
+        )
 
-    # TikTok Direct Post file upload supports chunked upload. Keep each chunk
-    # within the API's documented size range; final chunk may be smaller.
-    chunk_size = min(10 * 1024 * 1024, max(5 * 1024 * 1024, size))
+    # TikTok requires 5–64 MB chunks, except a video smaller than 5 MB
+    # must be sent as one chunk exactly equal to the full video size.
+    min_chunk = 5 * 1024 * 1024
+    max_chunk = 64 * 1024 * 1024
+    if size < min_chunk:
+        chunk_size = size
+    else:
+        chunk_size = min(max_chunk, size)
     chunks = (size + chunk_size - 1) // chunk_size
+    if chunks < 1 or chunks > 1000:
+        raise RuntimeError(f"Invalid TikTok chunk count calculated: {chunks}")
+
     payload = {
         "post_info": {
             "title": title,
@@ -90,29 +107,35 @@ def main():
             }
             response = requests.put(upload_url, headers=put_headers, data=block, timeout=180)
             if response.status_code not in (200, 201, 206):
-                raise RuntimeError(f"TikTok video transfer failed on chunk {index + 1}: HTTP {response.status_code} {response.text[:500]}")
+                raise RuntimeError(
+                    f"TikTok video transfer failed on chunk {index + 1}: "
+                    f"HTTP {response.status_code} {response.text[:500]}"
+                )
 
     print("TikTok accepted the video upload request. Checking processing status...")
-    status_headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-    for _ in range(12):
+    for _ in range(18):
         status = requests.post(
             f"{API}/post/publish/status/fetch/",
-            headers=status_headers, json={"publish_id": publish_id}, timeout=30
+            headers=headers, json={"publish_id": publish_id}, timeout=30
         )
         status.raise_for_status()
-        status_data = status.json()
-        if status_data.get("error", {}).get("code") != "ok":
-            raise RuntimeError("TikTok status check failed: " + str(status_data.get("error", {})))
-        result = status_data.get("data") or {}
+        status_body = status.json()
+        if status_body.get("error", {}).get("code") != "ok":
+            raise RuntimeError("TikTok status check failed: " + str(status_body.get("error", {})))
+        result = status_body.get("data") or {}
         state = result.get("status", "PROCESSING")
         print("TikTok publish status:", state)
         if state == "PUBLISH_COMPLETE":
             print("TikTok post published successfully.")
             return
         if state in ("FAILED", "SEND_TO_USER_INBOX"):
-            raise RuntimeError("TikTok did not publish the post. Status: " + state + "; details: " + str(result))
+            raise RuntimeError(
+                "TikTok did not publish the post. Status: " + state +
+                "; details: " + str(result)
+            )
         time.sleep(10)
-    raise RuntimeError("TikTok is still processing the post. Check TikTok Developer publish status later.")
+    raise RuntimeError("TikTok is still processing the post. Check TikTok publish status later.")
+
 
 if __name__ == "__main__":
     main()
