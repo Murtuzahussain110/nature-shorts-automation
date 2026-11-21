@@ -2,6 +2,12 @@ name: Deploy TikTok OAuth Worker
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "cloudflare/tiktok-oauth/**"
+      - ".github/workflows/deploy-tiktok-worker.yml"
 
 permissions:
   contents: read
