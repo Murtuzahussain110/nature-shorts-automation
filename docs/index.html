@@ -31,6 +31,7 @@ label{display:block;margin:14px 0 6px;color:#e4e6f4;font-weight:600}input,textar
 <label for="video">MP4 video</label>
 <input id="video" name="video" type="file" accept="video/mp4,.mp4" required>
 <div class="fieldnote">Test limit: 64 MB. Use a video you own and have permission to post.</div>
+<div id="video-preview-wrap" class="status hidden"><strong>Video preview</strong><video id="video-preview" controls playsinline style="display:block;width:100%;max-height:420px;object-fit:contain;margin-top:10px;border-radius:10px;background:#080b14"></video></div>
 <label for="title">Caption</label>
 <textarea id="title" name="title" maxlength="150" required placeholder="Write a short caption for your cartoon"></textarea>
 <label for="privacy">Who can watch this video?</label>
@@ -51,6 +52,7 @@ const privacySelect = document.getElementById("privacy");
 const publishButton = document.getElementById("publish-button");
 const resultBox = document.getElementById("publish-result");
 let connected = false;
+let previewUrl = null;
 
 async function refreshTikTokStatus() {
   statusBox.className = "status";
@@ -102,6 +104,19 @@ async function loadCreatorInfo() {
   }
 }
 document.getElementById("refresh-status").addEventListener("click", refreshTikTokStatus);
+document.getElementById("video").addEventListener("change", event => {
+  const file = event.target.files[0];
+  const wrap = document.getElementById("video-preview-wrap");
+  const preview = document.getElementById("video-preview");
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = null;
+  preview.removeAttribute("src");
+  if (!file) { wrap.classList.add("hidden"); return; }
+  if (file.type !== "video/mp4" && !file.name.toLowerCase().endsWith(".mp4")) { wrap.classList.add("hidden"); return; }
+  previewUrl = URL.createObjectURL(file);
+  preview.src = previewUrl;
+  wrap.classList.remove("hidden");
+});
 document.getElementById("publish-form").addEventListener("submit", async event => {
   event.preventDefault();
   if (!connected) { resultBox.className = "status error"; resultBox.textContent = "Connect TikTok first."; resultBox.classList.remove("hidden"); return; }
