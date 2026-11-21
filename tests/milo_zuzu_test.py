@@ -149,11 +149,8 @@ for obj, direction in milo_limbs:
         obj.rotation_euler[1]=angle*direction
         obj.keyframe_insert(data_path="rotation_euler",frame=f)
 # Keep all motion smooth and consistent
-for ob in bpy.data.objects:
-    if ob.animation_data and ob.animation_data.action:
-        for fc in ob.animation_data.action.fcurves:
-            for kp in fc.keyframe_points:
-                kp.interpolation="BEZIER"
+# Blender 5.x uses layered Actions; default Bezier interpolation is
+# already suitable for these object keyframes. Avoid legacy Action.fcurves API.
 
 # Camera stays stable; only the characters and props move.
 bpy.ops.object.camera_add(location=(0,-12,4.4))
