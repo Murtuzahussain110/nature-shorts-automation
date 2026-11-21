@@ -18,10 +18,10 @@ jobs:
     steps:
       - name: Checkout test branch
         uses: actions/checkout@v4
-      - name: Install Blender and FFmpeg
+      - name: Install Blender, FFmpeg and graphics runtime
         run: |
           sudo apt-get update
-          sudo apt-get install -y blender ffmpeg
+          sudo apt-get install -y blender ffmpeg libegl1 libgl1 libgles2
       - name: Render original Milo and Zuzu 3D animation
         run: |
           mkdir -p output
