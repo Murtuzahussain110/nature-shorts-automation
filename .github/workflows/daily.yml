@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'main.py'
+      - 'tiktok_publisher.py'
       - 'ai_story.py'
       - 'test_hf_spaces.py'
       - 'blender/**'
