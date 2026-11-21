@@ -6,8 +6,9 @@
 <title>CN Fun Cartoons</title>
 <style>
 :root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;font:16px/1.55 system-ui,-apple-system,Segoe UI,sans-serif;background:#101322;color:#f7f7fb}
-.wrap{max-width:760px;margin:0 auto;padding:48px 20px}.card{background:#1b2035;border:1px solid #343b59;border-radius:22px;padding:28px}
-.logo{font-size:14px;letter-spacing:2px;color:#aeb8ff;font-weight:700}h1{font-size:clamp(32px,7vw,48px);line-height:1.1;margin:14px 0}p{color:#c9cce0}.btn{display:inline-block;background:#fe2c55;color:white;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:12px;margin:14px 0;border:0;font-size:16px;cursor:pointer}.muted{font-size:13px;color:#9da4c2}.links{display:flex;gap:20px;flex-wrap:wrap;margin-top:24px}.links a{color:#b8c2ff}.steps{padding-left:20px;color:#d8daea}.steps li{margin:8px 0}.status{margin:18px 0;padding:14px 16px;border:1px solid #49516f;border-radius:12px;background:#151a2c}.status strong{display:block;color:#fff}.status small{color:#aeb5d0}.status.connected{border-color:#1eaa79}.status.connected strong{color:#65e6b5}.status.error{border-color:#d36a78}.status.error strong{color:#ff9aaa}.refresh{background:#343b59;padding:9px 14px;margin:8px 0 0}
+.wrap{max-width:760px;margin:0 auto;padding:36px 18px}.card{background:#1b2035;border:1px solid #343b59;border-radius:22px;padding:24px;margin:18px 0}
+.logo{font-size:14px;letter-spacing:2px;color:#aeb8ff;font-weight:700}h1{font-size:clamp(32px,7vw,46px);line-height:1.1;margin:14px 0}h2{font-size:25px;margin:28px 0 10px}p{color:#c9cce0}.btn{display:inline-block;background:#fe2c55;color:white;text-decoration:none;font-weight:700;padding:14px 20px;border-radius:12px;margin:12px 8px 8px 0;border:0;font-size:16px;cursor:pointer}.btn:disabled{opacity:.55;cursor:wait}.secondary{background:#343b59}.muted{font-size:13px;color:#9da4c2}.links{display:flex;gap:20px;flex-wrap:wrap;margin-top:24px}.links a{color:#b8c2ff}.status{margin:18px 0;padding:14px 16px;border:1px solid #49516f;border-radius:12px;background:#151a2c}.status strong{display:block;color:#fff}.status small{color:#aeb5d0}.status.connected{border-color:#1eaa79}.status.connected strong{color:#65e6b5}.status.error{border-color:#d36a78}.status.error strong{color:#ff9aaa}
+label{display:block;margin:14px 0 6px;color:#e4e6f4;font-weight:600}input,textarea,select{width:100%;padding:13px;border-radius:10px;border:1px solid #49516f;background:#111629;color:#fff;font:inherit}input[type=file]{padding:10px}textarea{min-height:86px;resize:vertical}.fieldnote{font-size:12px;color:#9da4c2}.hidden{display:none}
 </style>
 </head>
 <body>
@@ -15,47 +16,126 @@
 <div class="logo">CN FUN CARTOONS</div>
 <section class="card">
 <h1>Connect your TikTok account</h1>
-<p>Connect your own TikTok account to authorize CN Fun Cartoons to publish original cartoon videos on your behalf. You will be redirected to TikTok to sign in and review the requested permissions.</p>
-<div id="connection-status" class="status" role="status" aria-live="polite">
-<strong>Checking TikTok connection…</strong>
-<small>Please wait.</small>
-</div>
-<button class="btn refresh" id="refresh-status" type="button">Refresh connection status</button>
-<br>
+<p>Connect your own TikTok account to authorize CN Fun Cartoons to publish original cartoon videos on your behalf.</p>
+<div id="connection-status" class="status" role="status" aria-live="polite"><strong>Checking TikTok connection…</strong><small>Please wait.</small></div>
+<button class="btn secondary" id="refresh-status" type="button">Refresh connection status</button>
 <a class="btn" href="https://cn-fun-cartoons-tiktok-oauth.baqar786abbs.workers.dev/auth/tiktok/start">Connect TikTok</a>
-<p class="muted">You control the authorization. You can cancel on TikTok at any time. Connecting an account does not publish a video automatically.</p>
-<h2>How it works</h2>
-<ol class="steps">
-<li>Select “Connect TikTok”.</li>
-<li>Sign in to TikTok and review the requested access.</li>
-<li>Approve or cancel the connection on TikTok.</li>
-<li>Return to this page and refresh the connection status.</li>
-</ol>
+<p class="muted">Connecting does not publish a video automatically. You must choose a video and press Publish.</p>
+</section>
+
+<section class="card" id="publisher">
+<h2>Test video publishing</h2>
+<p>Upload one original MP4 cartoon video to your connected TikTok Sandbox account. The video will only be sent after you press the Publish test video button.</p>
+<div id="creator-status" class="status"><strong>Loading TikTok publishing options…</strong><small>Checking account permissions.</small></div>
+<form id="publish-form">
+<label for="video">MP4 video</label>
+<input id="video" name="video" type="file" accept="video/mp4,.mp4" required>
+<div class="fieldnote">Test limit: 64 MB. Use a video you own and have permission to post.</div>
+<label for="title">Caption</label>
+<textarea id="title" name="title" maxlength="150" required placeholder="Write a short caption for your cartoon"></textarea>
+<label for="privacy">Who can watch this video?</label>
+<select id="privacy" name="privacy_level" required><option value="">Loading privacy options…</option></select>
+<div class="fieldnote">Only privacy levels TikTok reports as available for this account will be shown.</div>
+<button class="btn" id="publish-button" type="submit" disabled>Publish test video</button>
+</form>
+<div id="publish-result" class="status hidden" role="status" aria-live="polite"></div>
+<p class="muted">TikTok may require the account owner to review or complete additional steps. Sandbox posts are for testing and may not appear publicly.</p>
 </section>
 <nav class="links"><a href="terms.html">Terms of Service</a><a href="privacy.html">Privacy Policy</a></nav>
 </main>
 <script>
+const WORKER = "https://cn-fun-cartoons-tiktok-oauth.baqar786abbs.workers.dev";
 const statusBox = document.getElementById("connection-status");
+const creatorBox = document.getElementById("creator-status");
+const privacySelect = document.getElementById("privacy");
+const publishButton = document.getElementById("publish-button");
+const resultBox = document.getElementById("publish-result");
+let connected = false;
+
 async function refreshTikTokStatus() {
   statusBox.className = "status";
   statusBox.innerHTML = "<strong>Checking TikTok connection…</strong><small>Please wait.</small>";
   try {
-    const response = await fetch("https://cn-fun-cartoons-tiktok-oauth.baqar786abbs.workers.dev/public/status", {cache:"no-store"});
+    const response = await fetch(WORKER + "/public/status", {cache:"no-store"});
     if (!response.ok) throw new Error("Status check failed (" + response.status + ")");
     const data = await response.json();
-    if (data.connected) {
+    connected = Boolean(data.connected);
+    if (connected) {
       statusBox.className = "status connected";
       statusBox.innerHTML = "<strong>✓ TikTok Connected</strong><small>Your TikTok account has authorized CN Fun Cartoons.</small>";
+      loadCreatorInfo();
     } else {
-      statusBox.className = "status";
       statusBox.innerHTML = "<strong>Not connected yet</strong><small>Select Connect TikTok and approve access.</small>";
+      creatorBox.innerHTML = "<strong>Connect TikTok first</strong><small>Publishing options appear after authorization.</small>";
+      publishButton.disabled = true;
     }
   } catch (error) {
+    connected = false;
     statusBox.className = "status error";
-    statusBox.innerHTML = "<strong>Could not check connection</strong><small>Refresh in a moment. " + String(error.message).replace(/[<>&"]/g, "") + "</small>";
+    statusBox.innerHTML = "<strong>Could not check connection</strong><small>" + clean(error.message) + "</small>";
+    publishButton.disabled = true;
+  }
+}
+function clean(value) { return String(value || "").replace(/[<>&"]/g, ""); }
+async function loadCreatorInfo() {
+  creatorBox.className = "status";
+  creatorBox.innerHTML = "<strong>Loading TikTok publishing options…</strong><small>Please wait.</small>";
+  try {
+    const response = await fetch(WORKER + "/public/creator-info", {cache:"no-store"});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Could not load creator settings.");
+    const options = data.privacy_level_options || [];
+    privacySelect.innerHTML = '<option value="">Choose audience</option>';
+    for (const option of options) {
+      const opt = document.createElement("option");
+      opt.value = option;
+      opt.textContent = option.replaceAll("_", " ").toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+      privacySelect.appendChild(opt);
+    }
+    creatorBox.className = "status connected";
+    creatorBox.innerHTML = "<strong>✓ TikTok publishing permission detected</strong><small>Choose an audience option and upload an MP4 test video.</small>";
+    publishButton.disabled = !connected || options.length === 0;
+  } catch (error) {
+    creatorBox.className = "status error";
+    creatorBox.innerHTML = "<strong>Publishing options unavailable</strong><small>" + clean(error.message) + "</small>";
+    publishButton.disabled = true;
   }
 }
 document.getElementById("refresh-status").addEventListener("click", refreshTikTokStatus);
+document.getElementById("publish-form").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (!connected) { resultBox.className = "status error"; resultBox.textContent = "Connect TikTok first."; resultBox.classList.remove("hidden"); return; }
+  const file = document.getElementById("video").files[0];
+  if (!file) return;
+  if (file.size > 64 * 1024 * 1024) { alert("Please choose an MP4 smaller than 64 MB."); return; }
+  if (!confirm("Send this video to your connected TikTok Sandbox account now?")) return;
+  const form = new FormData();
+  form.append("video", file);
+  form.append("title", document.getElementById("title").value);
+  form.append("privacy_level", privacySelect.value);
+  publishButton.disabled = true;
+  publishButton.textContent = "Uploading…";
+  resultBox.className = "status";
+  resultBox.classList.remove("hidden");
+  resultBox.innerHTML = "<strong>Uploading video to TikTok…</strong><small>Keep this page open until the upload finishes.</small>";
+  try {
+    const response = await fetch(WORKER + "/public/publish", {method:"POST", body:form});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "TikTok upload failed.");
+    resultBox.className = "status connected";
+    resultBox.innerHTML = "<strong>Video sent to TikTok</strong><small>Publish ID: " + clean(data.publish_id) + "<br>Checking processing status…</small>";
+    const statusResponse = await fetch(WORKER + "/public/publish-status?publish_id=" + encodeURIComponent(data.publish_id), {cache:"no-store"});
+    const statusData = await statusResponse.json();
+    if (!statusResponse.ok) throw new Error(statusData.error || "Could not check TikTok processing status.");
+    resultBox.innerHTML = "<strong>TikTok status: " + clean(statusData.status) + "</strong><small>" + (statusData.fail_reason ? "Reason: " + clean(statusData.fail_reason) : "TikTok received the video. If processing is still underway, check the status again later.") + "</small>";
+  } catch (error) {
+    resultBox.className = "status error";
+    resultBox.innerHTML = "<strong>Publishing test failed</strong><small>" + clean(error.message) + "</small>";
+  } finally {
+    publishButton.disabled = !connected || !privacySelect.value;
+    publishButton.textContent = "Publish test video";
+  }
+});
 refreshTikTokStatus();
 </script>
 </body>
