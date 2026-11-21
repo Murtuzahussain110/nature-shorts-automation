@@ -1,36 +1,42 @@
-# Privacy Policy
-
-**Service:** CN Fun Cartoons Automation  
-**Effective date:** 20 November 2026
-
-## 1. Overview
-CN Fun Cartoons Automation is a personal project for preparing and publishing videos to social-media accounts that its owner chooses to connect. This policy describes the intended data handling of the project.
-
-## 2. Information processed
-Depending on the integrations enabled, the project may process:
-- Video files, captions, titles, and other publishing information supplied for a post.
-- Basic account/profile information returned by a platform after the account owner authorizes access.
-- Platform authorization tokens required to perform approved actions.
-
-The project does not ask users to send passwords or one-time verification codes to the project owner.
-
-## 3. How information is used
-Information is used only to create, upload, or publish the content requested by the account owner, and to diagnose automation errors. The project does not sell personal information or use it for advertising.
-
-## 4. Storage and security
-Where configured, API credentials are stored as repository or automation secrets and should not be placed in public source files. Video files and workflow logs may be processed or retained by the hosting and platform services according to their own retention settings and policies. No claim is made that data is stored only in one country.
-
-## 5. Sharing
-Information is sent to the social-media platform selected by the account owner and to the hosting/automation provider needed to run the project. Those providers process information under their own privacy policies. The project does not sell information to data brokers.
-
-## 6. Retention and deletion
-Content and logs may remain in the repository's automation history or in the connected platform until deleted under that provider's controls. The account owner can revoke platform authorization and remove stored secrets from the repository settings. Deleting a post from this project does not necessarily delete copies held by a platform.
-
-## 7. Children's privacy
-This project may publish cartoon content intended for a general or child audience, but it is not designed to collect personal information directly from children. Do not submit children's personal information through the project.
-
-## 8. Your choices
-You may stop using the project, revoke connected-app permissions through the platform, and remove credentials from repository secrets. Requests about data handled by TikTok or another platform should also be directed to that platform.
-
-## 9. Changes and contact
-This policy may be updated when project features or integrations change. For questions, contact the project owner through the GitHub repository: https://github.com/Murtuzahussain110/nature-shorts-automation.
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Privacy Policy — CN Fun Cartoons</title>
+<style>
+body{font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif;max-width:820px;margin:40px auto;padding:0 20px;color:#202437;background:#fff}
+h1,h2{line-height:1.25;color:#151a2c}h1{font-size:2rem}h2{font-size:1.2rem;margin-top:28px}
+a{color:#3155b7}small{color:#626b80}.back{display:inline-block;margin-bottom:20px}
+</style>
+</head>
+<body>
+<a class="back" href="./">← CN Fun Cartoons</a>
+<h1>Privacy Policy</h1>
+<p><strong>Service:</strong> CN Fun Cartoons Automation<br><strong>Effective date:</strong> 22 November 2026</p>
+<h2>1. Overview</h2>
+<p>CN Fun Cartoons Automation is a project used by its owner to prepare original cartoon videos and publish them to social-media accounts that the owner chooses to connect. This policy describes the information processed by the project.</p>
+<h2>2. Information processed</h2>
+<ul>
+<li>Video files, captions, titles, and publishing settings supplied for a post.</li>
+<li>Basic account/profile information returned by TikTok after the account owner authorizes access.</li>
+<li>OAuth authorization tokens required to perform the actions the account owner requests.</li>
+<li>Technical logs and status information needed to diagnose failed uploads.</li>
+</ul>
+<p>The project does not request TikTok passwords or one-time verification codes.</p>
+<h2>3. How information is used</h2>
+<p>Information is used to connect the account, prepare and upload videos selected by the account owner, check publishing status, and troubleshoot errors. Personal information is not sold and is not used by this project for advertising.</p>
+<h2>4. Storage and security</h2>
+<p>OAuth tokens are stored in the project's Cloudflare Worker KV storage and are used by the Worker to refresh access tokens and call TikTok APIs. Automation credentials are stored as GitHub Actions secrets. Video files and workflow logs may be processed or retained by GitHub, Cloudflare, and TikTok according to their own settings and policies. No claim is made that information is stored only in one country.</p>
+<h2>5. Sharing</h2>
+<p>Information is sent to TikTok when the account owner connects the account or submits a video for publishing. Technical data is also processed by GitHub and Cloudflare to host and run the project. These providers process information under their own privacy policies. This project does not sell information to data brokers.</p>
+<h2>6. Retention and deletion</h2>
+<p>OAuth tokens remain in Cloudflare KV until the account owner disconnects or deletes them. The account owner can revoke this project's access through TikTok's connected-app settings and can request removal of project-held tokens through the project owner. Workflow artifacts and logs are retained according to the repository's configured retention period. Deleting data here does not necessarily delete copies already held by TikTok or another provider.</p>
+<h2>7. Children's privacy</h2>
+<p>The project may publish cartoon videos suitable for a general or child audience, but it is not designed to collect personal information directly from children. Do not submit children's personal information through the project.</p>
+<h2>8. Your choices</h2>
+<p>You may stop using the project and revoke its access in TikTok's security or connected-app settings. You may also contact the project owner to request deletion of project-held authorization data.</p>
+<h2>9. Changes and contact</h2>
+<p>This policy may be updated when the project's features or integrations change. For questions, contact the project owner through the <a href="https://github.com/Murtuzahussain110/nature-shorts-automation">GitHub repository</a>.</p>
+</body>
+</html>
