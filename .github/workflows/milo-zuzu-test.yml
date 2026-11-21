@@ -1,0 +1,37 @@
+name: Milo and Zuzu isolated animation test
+
+on:
+  push:
+    branches:
+      - test/milo-zuzu-animation
+    paths:
+      - 'tests/milo_zuzu_test.py'
+      - '.github/workflows/milo-zuzu-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  render-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+      - name: Install Blender and FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender ffmpeg
+      - name: Render original Milo and Zuzu 3D animation
+        run: |
+          mkdir -p output
+          blender -b --python-exit-code 1 --python tests/milo_zuzu_test.py -- output/milo_zuzu_test.mp4
+          ffmpeg -y -framerate 16 -i output/frames/frame_%04d.png -c:v libx264 -pix_fmt yuv420p -movflags +faststart output/milo_zuzu_test.mp4
+          test -s output/milo_zuzu_test.mp4
+      - name: Upload test video artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: milo-zuzu-animation-test
+          path: output/
+          if-no-files-found: warn
