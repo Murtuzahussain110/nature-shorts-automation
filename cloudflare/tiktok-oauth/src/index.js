@@ -4,11 +4,16 @@
  * KV binding: TIKTOK_KV
  */
 const API = "https://open.tiktokapis.com/v2";
+const SITE_ORIGIN = "https://murtuzahussain110.github.io";
 
-function json(data, status = 200) {
+function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" }
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": "no-store",
+      ...extraHeaders
+    }
   });
 }
 function safeEqual(a, b) {
@@ -52,7 +57,28 @@ async function getFreshToken(env) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if (request.method === "OPTIONS" && url.pathname === "/public/status") {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          "Access-Control-Allow-Origin": SITE_ORIGIN,
+          "Access-Control-Allow-Methods": "GET, OPTIONS",
+          "Access-Control-Allow-Headers": "Content-Type",
+          "Access-Control-Max-Age": "86400"
+        }
+      });
+    }
     if (request.method === "GET" && url.pathname === "/health") return json({ ok: true, service: "cn-fun-cartoons-tiktok-oauth" });
+
+    // Public endpoint reveals only whether a token is stored; never returns tokens or account identifiers.
+    if (request.method === "GET" && url.pathname === "/public/status") {
+      const stored = await env.TIKTOK_KV.get("oauth_tokens", "json");
+      return json(
+        { connected: Boolean(stored?.refresh_token) },
+        200,
+        { "Access-Control-Allow-Origin": SITE_ORIGIN, "Vary": "Origin" }
+      );
+    }
 
     if (request.method === "GET" && url.pathname === "/auth/tiktok/start") {
       const stateBytes = crypto.getRandomValues(new Uint8Array(32));
