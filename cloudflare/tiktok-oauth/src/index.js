@@ -6,6 +6,7 @@
 const API = "https://open.tiktokapis.com/v2";
 const SITE_ORIGIN = "https://murtuzahussain110.github.io";
 const MAX_VIDEO_BYTES = 64 * 1024 * 1024;
+const MIN_CHUNK_BYTES = 5 * 1024 * 1024;
 const CHUNK_BYTES = 10 * 1024 * 1024;
 
 function corsHeaders() {
@@ -125,8 +126,14 @@ export default {
         if (!privacyOptions.includes(privacy)) {
           return json({ error: "That privacy option is not available for this TikTok account. Refresh the privacy options and try again." }, 400, corsHeaders());
         }
-        const chunkSize = Math.min(CHUNK_BYTES, video.size);
+
+        // TikTok requires a 5 MB minimum declared chunk size. The final
+        // transmitted chunk may be smaller when the entire video is shorter.
+        const chunkSize = Math.max(MIN_CHUNK_BYTES, Math.min(CHUNK_BYTES, video.size));
         const chunkCount = Math.ceil(video.size / chunkSize);
+        if (chunkCount < 1 || chunkCount > 1000) {
+          return json({ error: "This video cannot be split into a valid TikTok upload." }, 400, corsHeaders());
+        }
         const initBody = await tiktokJson("/post/publish/video/init/", token, {
           method: "POST",
           headers: { "Content-Type": "application/json; charset=UTF-8" },
