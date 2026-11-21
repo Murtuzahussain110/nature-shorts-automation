@@ -7,4 +7,4 @@ binding = "TIKTOK_KV"
 id = "2c7f61c43d5e499094e797a742d036de"
 
 [vars]
-TIKTOK_REDIRECT_URI = "https://REPLACE-WORKER-DOMAIN/auth/tiktok/callback"
+TIKTOK_REDIRECT_URI = "https://cn-fun-cartoons-tiktok-oauth.baqar786abbs.workers.dev/auth/tiktok/callback"
