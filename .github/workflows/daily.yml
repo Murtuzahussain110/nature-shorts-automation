@@ -21,8 +21,8 @@ on:
         options: [ur, en]
         default: ur
   schedule:
-    - cron: "0 3 * * *" # 8:00 AM Pakistan time - English
-    - cron: "0 13 * * *" # 6:00 PM Pakistan time - Urdu
+    - cron: "0 4 * * *" # 9:00 AM Pakistan time - English
+    - cron: "0 16 * * *" # 9:00 PM Pakistan time - Urdu
 
 permissions:
   contents: read
@@ -84,7 +84,7 @@ jobs:
         if: success()
         env:
           TIKTOK_ACCESS_TOKEN: ${{ steps.tiktok-token.outputs.access_token }}
-          STORY_LANGUAGE: ${{ github.event.schedule == '0 3 * * *' && 'en' || github.event.schedule == '0 13 * * *' && 'ur' || inputs.language || 'ur' }}
+          STORY_LANGUAGE: ${{ github.event.schedule == '0 4 * * *' && 'en' || github.event.schedule == '0 16 * * *' && 'ur' || inputs.language || 'ur' }}
         run: python tiktok_publisher.py output/daily_story.mp4
       - name: Verify MP4 video, audio, subtitles and portrait format
         if: success()
@@ -105,6 +105,9 @@ jobs:
           assert duration >= 15, f"Video too short: {duration:.2f}s"
           print(f"VERIFIED: {video['width']}x{video['height']}, {duration:.2f}s, video+audio streams, subtitles present")
           PY
+      - name: Detect and export the best story highlights
+        if: success()
+        run: python highlight_clips.py
       - name: Save generated files for review
         if: always()
         uses: actions/upload-artifact@v4
