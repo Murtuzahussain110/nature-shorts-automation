@@ -88,14 +88,7 @@ jobs:
           token=$(python -c 'import json,sys; print(json.load(sys.stdin).get("access_token",""))' <<< "$response" 2>/dev/null)
           if [ -z "$token" ]; then
             echo "TikTok worker did not return an access token. Safe error response:"
-            python - <<'PY' <<< "$response"
-          import json,sys
-          try:
-              body=json.load(sys.stdin)
-              print(body.get("error") or body.get("message") or "No error message returned.")
-          except Exception:
-              print("Worker returned a non-JSON response.")
-          PY
+            python -c 'import json,sys; d=json.load(sys.stdin); print(d.get("error") or d.get("message") or "No error message returned.")' <<< "$response" || echo "Worker returned a non-JSON response."
             exit 1
           fi
           echo "::add-mask::$token"
