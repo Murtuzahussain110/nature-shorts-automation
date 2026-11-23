@@ -6,7 +6,8 @@ on:
     paths:
       - 'main.py'
       - 'tiktok_publisher.py'
-      - 'ai_story.py'\n      - 'highlight_clips.py'
+      - 'ai_story.py'
+      - 'highlight_clips.py'
       - 'test_hf_spaces.py'
       - 'blender/**'
       - 'requirements.txt'
