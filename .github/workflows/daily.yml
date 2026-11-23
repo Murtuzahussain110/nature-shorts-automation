@@ -74,15 +74,35 @@ jobs:
       - name: Get a fresh TikTok access token from secure Cloudflare backend
         id: tiktok-token
         if: success() && env.TIKTOK_WORKER_URL != '' && env.TIKTOK_AUTOMATION_SECRET != ''
+        continue-on-error: true
         run: |
-          response=$(curl --fail --silent --show-error \
+          set +e
+          response=$(curl --silent --show-error \
             -H "Authorization: Bearer $TIKTOK_AUTOMATION_SECRET" \
             "$TIKTOK_WORKER_URL/internal/access-token")
-          token=$(python -c 'import json,sys; print(json.load(sys.stdin)["access_token"])' <<< "$response")
+          status=$?
+          if [ "$status" -ne 0 ]; then
+            echo "TikTok worker request failed (curl exit $status)."
+            exit 1
+          fi
+          token=$(python -c 'import json,sys; print(json.load(sys.stdin).get("access_token",""))' <<< "$response" 2>/dev/null)
+          if [ -z "$token" ]; then
+            echo "TikTok worker did not return an access token. Safe error response:"
+            python - <<'PY' <<< "$response"
+          import json,sys
+          try:
+              body=json.load(sys.stdin)
+              print(body.get("error") or body.get("message") or "No error message returned.")
+          except Exception:
+              print("Worker returned a non-JSON response.")
+          PY
+            exit 1
+          fi
           echo "::add-mask::$token"
           echo "access_token=$token" >> "$GITHUB_OUTPUT"
       - name: Publish to TikTok automatically
-        if: success()
+        if: success() && steps.tiktok-token.outcome == 'success' && steps.tiktok-token.outputs.access_token != ''
+        continue-on-error: true
         env:
           TIKTOK_ACCESS_TOKEN: ${{ steps.tiktok-token.outputs.access_token }}
           STORY_LANGUAGE: ${{ github.event.schedule == '0 4 * * *' && 'en' || github.event.schedule == '0 16 * * *' && 'ur' || inputs.language || 'ur' }}
