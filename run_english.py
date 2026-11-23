@@ -28,20 +28,20 @@ def make_urdu_subtitles(story, durations):
         start = max(0.0, offset + 0.05)
         end = max(start + 0.5, offset + duration - 0.05)
         entries.append(
-            f"{index}\\n{cartoon.timestamp(start)} --> {cartoon.timestamp(end)}\\n{urdu}\\n"
+            f"{index}\n{cartoon.timestamp(start)} --> {cartoon.timestamp(end)}\n{urdu}\n"
         )
         offset += duration
-    cartoon.SUBTITLE_FILE.write_text("\\n".join(entries), encoding="utf-8")
+    cartoon.SUBTITLE_FILE.write_text("\n".join(entries), encoding="utf-8")
 
 
 def english_description(story):
     tags = " ".join("#" + re.sub(r"[^A-Za-z0-9]", "", tag.replace(" ", "")) for tag in story["tags"][:5])
     return (
-        f"{story['title']}\\n\\n"
+        f"{story['title']}\n\n"
         "A funny animated cat-and-mouse adventure with English character voices "
-        "and Urdu subtitles. Family-friendly cartoon comedy.\\n\\n"
-        "SERIES: Tom & Jerry English Cartoon Shorts\\n"
-        "LANGUAGE: English voice + Urdu subtitles\\n\\n"
+        "and Urdu subtitles. Family-friendly cartoon comedy.\n\n"
+        "SERIES: Tom & Jerry English Cartoon Shorts\n"
+        "LANGUAGE: English voice + Urdu subtitles\n\n"
         f"#TomAndJerry #EnglishCartoon #CartoonShorts #FunnyCartoon #Shorts {tags}"
     )[:4500]
 
