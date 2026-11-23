@@ -1,4 +1,3 @@
-
 name: Daily Tom and Jerry 3D Shorts
 run-name: Render private animated cartoon short
 
@@ -9,6 +8,7 @@ on:
     paths:
       - 'main.py'
       - 'blender/**'
+      - 'highlight_clips.py'
       - '.github/workflows/daily.yml'
   workflow_dispatch:
   schedule:
@@ -46,6 +46,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: gemini-3.8-flash
         run: python main.py
+
+      - name: Detect and export best cartoon moments
+        run: python highlight_clips.py
 
       - name: Save generated files
         if: always()
