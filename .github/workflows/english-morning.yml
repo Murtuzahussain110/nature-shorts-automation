@@ -1,0 +1,52 @@
+name: English Morning Cartoon Short
+run-name: Render English cartoon with Urdu subtitles
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  english-morning:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: feature/ayan-coco-cartoon-shorts
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Blender and FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y blender ffmpeg fonts-dejavu-core libegl1 libgl1 libxrender1 libxext6 libsm6
+
+      - name: Install Python packages
+        run: pip install -r requirements.txt
+
+      - name: Render English episode and upload privately
+        env:
+          YOUTUBE_CLIENT_JSON: ${{ secrets.YOUTUBE_CLIENT_JSON }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          YOUTUBE_PRIVACY_STATUS: private
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: gemini-3.8-flash
+        run: python run_english.py
+
+      - name: Detect and export best cartoon moments
+        run: python highlight_clips.py
+
+      - name: Save English generated files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: english-cartoon-short-output
+          path: output/
+          if-no-files-found: ignore
