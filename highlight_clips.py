@@ -38,7 +38,7 @@ def motion_score(path):
     ], capture=True)
     values = [
         float(value) for value in re.findall(
-            r"lavfi\\.signalstats\\.YAVG=([0-9.]+)", result.stderr
+            r"lavfi\.signalstats\.YAVG=([0-9.]+)", result.stderr
         )
     ]
     return sum(values) / len(values) if values else 0.0
@@ -51,7 +51,7 @@ def audio_score(path):
         "ffmpeg", "-hide_banner", "-i", str(path),
         "-af", "volumedetect", "-f", "null", "-"
     ], capture=True)
-    match = re.search(r"mean_volume:\\s*(-?[0-9.]+) dB", result.stderr)
+    match = re.search(r"mean_volume:\s*(-?[0-9.]+) dB", result.stderr)
     return float(match.group(1)) if match else -60.0
 
 
@@ -60,7 +60,7 @@ def main():
         raise RuntimeError("output/daily_story.mp4 is missing; cannot cut highlights.")
     clips = sorted(
         OUT.glob("clip_*.mp4"),
-        key=lambda path: int(re.search(r"clip_(\\d+)", path.stem).group(1))
+        key=lambda path: int(re.search(r"clip_(\d+)", path.stem).group(1))
     )
     if len(clips) < 2:
         raise RuntimeError(f"Expected at least two scene clips; found {len(clips)}.")
@@ -68,7 +68,7 @@ def main():
     scenes = []
     cursor = 0.0
     for clip in clips:
-        number = int(re.search(r"clip_(\\d+)", clip.stem).group(1))
+        number = int(re.search(r"clip_(\d+)", clip.stem).group(1))
         length = duration(clip)
         voice = AUDIO / f"voice_{number}.mp3"
         motion = motion_score(clip)
