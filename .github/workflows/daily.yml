@@ -6,7 +6,7 @@ on:
     paths:
       - 'main.py'
       - 'tiktok_publisher.py'
-      - 'ai_story.py'
+      - 'ai_story.py'\n      - 'highlight_clips.py'
       - 'test_hf_spaces.py'
       - 'blender/**'
       - 'requirements.txt'
@@ -60,7 +60,7 @@ jobs:
         run: python test_hf_spaces.py
       - name: Generate six AI-illustrated story scenes
         env:
-          STORY_LANGUAGE: ${{ github.event.schedule == '0 3 * * *' && 'en' || github.event.schedule == '0 13 * * *' && 'ur' || inputs.language || 'ur' }}
+          STORY_LANGUAGE: ${{ github.event.schedule == '0 4 * * *' && 'en' || github.event.schedule == '0 16 * * *' && 'ur' || inputs.language || 'ur' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
